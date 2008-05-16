@@ -9,6 +9,7 @@
 #include "request.h"
 #include "struct.h"
 #include "union.h"
+#include "list.h"
 #include "conn.h"
 #include "extkey.h"
 #include "ext.h"
@@ -144,6 +145,8 @@ initxcb(void)
     if (xpybStruct_modinit(m) < 0)
 	return;
     if (xpybUnion_modinit(m) < 0)
+	return;
+    if (xpybList_modinit(m) < 0)
 	return;
 
     if (xpybVoid_modinit(m) < 0)
