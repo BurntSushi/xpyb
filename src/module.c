@@ -7,6 +7,8 @@
 #include "error.h"
 #include "reply.h"
 #include "request.h"
+#include "struct.h"
+#include "union.h"
 #include "conn.h"
 #include "extkey.h"
 #include "ext.h"
@@ -138,6 +140,10 @@ initxcb(void)
     if (xpybReply_modinit(m) < 0)
 	return;
     if (xpybRequest_modinit(m) < 0)
+	return;
+    if (xpybStruct_modinit(m) < 0)
+	return;
+    if (xpybUnion_modinit(m) < 0)
 	return;
 
     if (xpybVoid_modinit(m) < 0)
