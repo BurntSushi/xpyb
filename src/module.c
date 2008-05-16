@@ -81,6 +81,26 @@ xpyb_add_ext(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject *
+xpyb_resize_obj(PyObject *self, PyObject *args)
+{
+    xpybProtobj *obj;
+    Py_ssize_t size;
+    PyObject *buf;
+
+    if (!PyArg_ParseTuple(args, "O!i", &xpybProtobj_type, &obj, &size))
+	return NULL;
+
+    buf = PyBuffer_FromObject(obj->buf, 0, size);
+    if (buf == NULL)
+	return NULL;
+
+    Py_CLEAR(obj->buf);
+    obj->buf = buf;
+
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef XCBMethods[] = {
     { "connect",
       (PyCFunction)xpyb_connect,
@@ -96,6 +116,11 @@ static PyMethodDef XCBMethods[] = {
       (PyCFunction)xpyb_add_ext,
       METH_VARARGS,
       "Registers a new extension protocol class.  Not meant for end users." },
+
+    { "_resize_obj",
+      (PyCFunction)xpyb_resize_obj,
+      METH_VARARGS,
+      "Sizes a protocol object after size determination.  Not meant for end users." },
 
     { NULL } /* terminator */
 };
