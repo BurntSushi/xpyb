@@ -32,15 +32,19 @@ xpybError_set(xcb_generic_error_t *e)
  */
 
 static PyObject *
-xpybError_getattro(xpybProtobj *self, PyObject *obj)
+xpybError_getattro(PyObject *self, PyObject *obj)
 {
     const char *name = PyString_AS_STRING(obj);
-    xcb_generic_error_t *data = self->data;
+    const xcb_generic_error_t *data;
+    Py_ssize_t size;
+
+    if (PyObject_AsReadBuffer(self, (const void **)&data, &size) < 0)
+	return NULL;
 
     if (strcmp(name, "code") == 0)
 	return Py_BuildValue("B", data->error_code);
 
-    return xpybError_type.tp_base->tp_getattro((PyObject *)self, obj);
+    return xpybError_type.tp_base->tp_getattro(self, obj);
 }
 
 
@@ -55,7 +59,7 @@ PyTypeObject xpybError_type = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic event object",
     .tp_base = &xpybResponse_type,
-    .tp_getattro = (getattrofunc)xpybError_getattro
+    .tp_getattro = xpybError_getattro
 };
 
 

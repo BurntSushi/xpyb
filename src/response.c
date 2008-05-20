@@ -17,17 +17,21 @@
  */
 
 static PyObject *
-xpybResponse_getattro(xpybProtobj *self, PyObject *obj)
+xpybResponse_getattro(PyObject *self, PyObject *obj)
 {
     const char *name = PyString_AS_STRING(obj);
-    xcb_generic_event_t *data = self->data;
+    const xcb_generic_event_t *data;
+    Py_ssize_t size;
+
+    if (PyObject_AsReadBuffer(self, (const void **)&data, &size) < 0)
+	return NULL;
 
     if (strcmp(name, "type") == 0)
 	return Py_BuildValue("B", data->response_type);
     if (strcmp(name, "sequence") == 0)
 	return Py_BuildValue("H", data->sequence);
 
-    return xpybResponse_type.tp_base->tp_getattro((PyObject *)self, obj);
+    return xpybResponse_type.tp_base->tp_getattro(self, obj);
 }
 
 
@@ -42,7 +46,7 @@ PyTypeObject xpybResponse_type = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic response object",
     .tp_base = &xpybProtobj_type,
-    .tp_getattro = (getattrofunc)xpybResponse_getattro
+    .tp_getattro = xpybResponse_getattro
 };
 
 

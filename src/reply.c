@@ -18,15 +18,19 @@
  */
 
 static PyObject *
-xpybReply_getattro(xpybProtobj *self, PyObject *obj)
+xpybReply_getattro(PyObject *self, PyObject *obj)
 {
     const char *name = PyString_AS_STRING(obj);
-    xcb_generic_reply_t *data = self->data;
+    xcb_generic_reply_t *data;
+    Py_ssize_t size;
+
+    if (PyObject_AsReadBuffer(self, (const void **)&data, &size) < 0)
+	return NULL;
 
     if (strcmp(name, "length") == 0)
 	return Py_BuildValue("I", data->length);
 
-    return xpybReply_type.tp_base->tp_getattro((PyObject *)self, obj);
+    return xpybReply_type.tp_base->tp_getattro(self, obj);
 }
 
 
@@ -41,7 +45,7 @@ PyTypeObject xpybReply_type = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic reply object",
     .tp_base = &xpybResponse_type,
-    .tp_getattro = (getattrofunc)xpybReply_getattro
+    .tp_getattro = xpybReply_getattro
 };
 
 
