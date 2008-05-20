@@ -5,6 +5,7 @@ typedef struct {
     PyObject_HEAD
     int pref_screen;
     xcb_connection_t *conn;
+    PyObject *extcache;
 } xpybConn;
 
 extern PyTypeObject xpybConn_type;

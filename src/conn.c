@@ -21,40 +21,13 @@ xpybConn_invalid(xpybConn *self)
     return 0;
 }
 
-
-/*
- * Infrastructure
- */
-
 static PyObject *
-xpybConn_new(PyTypeObject *self, PyObject *args, PyObject *kw)
+xpybConn_make_ext(xpybConn *self, PyObject *key)
 {
-    return PyType_GenericNew(self, args, kw);
-}
-
-static void
-xpybConn_dealloc(xpybConn *self)
-{
-    if (self->conn)
-	xcb_disconnect(self->conn);
-
-    self->ob_type->tp_free((PyObject *)self);
-}
-
-static PyObject *
-xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
-{
-    static char *kwlist[] = { "key", NULL };
-    PyObject *result, *arglist, *key = Py_None;
+    PyObject *result, *arglist;
     xpybExt *ext;
     const xcb_query_extension_reply_t *reply;
     int rc;
-
-    /* Parse the extension key argument and check connection. */
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "|O!", kwlist, &xpybExtkey_type, &key))
-	return NULL;
-    if (xpybConn_invalid(self))
-	return NULL;
 
     /* Look up the callable object in the global dictionary. */
     result = PyDict_GetItem(xpybModule_extdict, key);
@@ -84,6 +57,7 @@ xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
     case 0:
 	PyErr_SetString(xpybExcept_ext, "Invalid extension object returned.");
     default:
+	Py_DECREF(ext);
 	return NULL;
     }
 
@@ -92,6 +66,7 @@ xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
 	reply = xcb_get_extension_data(self->conn, &((xpybExtkey *)key)->key);
 	if (!reply->present) {
 	    PyErr_SetString(xpybExcept_ext, "Extension not present on server.");
+	    Py_DECREF(ext);
 	    return NULL;
 	}
 	ext->major_opcode = reply->major_opcode;
@@ -100,6 +75,52 @@ xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
     }
 
     return (PyObject *)ext;
+}
+
+
+/*
+ * Infrastructure
+ */
+
+static PyObject *
+xpybConn_new(PyTypeObject *self, PyObject *args, PyObject *kw)
+{
+    return PyType_GenericNew(self, args, kw);
+}
+
+static void
+xpybConn_dealloc(xpybConn *self)
+{
+    Py_CLEAR(self->extcache);
+
+    if (self->conn)
+	xcb_disconnect(self->conn);
+
+    self->ob_type->tp_free((PyObject *)self);
+}
+
+static PyObject *
+xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
+{
+    static char *kwlist[] = { "key", NULL };
+    PyObject *ext, *key = Py_None;
+
+    /* Parse the extension key argument and check connection. */
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "|O!", kwlist, &xpybExtkey_type, &key))
+	return NULL;
+    if (xpybConn_invalid(self))
+	return NULL;
+
+    /* Check our dictionary of cached values */
+    ext = PyDict_GetItem(self->extcache, key);
+    if (ext == NULL) {
+	ext = xpybConn_make_ext(self, key);
+	if (ext == NULL)
+	    return NULL;
+	if (PyDict_SetItem(self->extcache, key, ext) < 0)
+	    return NULL;
+    }
+    return ext;
 }
 
 

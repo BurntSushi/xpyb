@@ -35,21 +35,30 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
     int screenp;
     xcb_connection_t *c;
     xpybConn *conn = NULL;
+    PyObject *dict;
 
     if (!PyArg_ParseTupleAndKeywords(args, kw, "|z", kwlist, &displayname))
 	return NULL;
+    if ((dict = PyDict_New()) == NULL)
+	return NULL;
+    if ((conn = PyObject_New(xpybConn, &xpybConn_type)) == NULL)
+	goto err1;
 
     c = xcb_connect(displayname, &screenp);
-    if (xcb_connection_has_error(c))
+    if (xcb_connection_has_error(c)) {
 	PyErr_SetString(xpybExcept_conn, "Failed to connect to X server.");
-    else
-	conn = PyObject_New(xpybConn, &xpybConn_type);
-
-    if (conn != NULL) {
-	conn->pref_screen = screenp;
-	conn->conn = c;
+	goto err2;
     }
+
+    conn->pref_screen = screenp;
+    conn->conn = c;
+    conn->extcache = dict;
     return (PyObject *)conn;
+err2:
+    Py_DECREF(conn);
+err1:
+    Py_DECREF(dict);
+    return NULL;
 }
 
 static PyObject *
