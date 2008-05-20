@@ -9,7 +9,7 @@ typedef struct {
     PyObject_HEAD
     xpybConn *conn;
     xpybRequest *request;
-    xpybReply *reply;
+    PyTypeObject *reply;
     xcb_void_cookie_t cookie;
 } xpybCookie;
 

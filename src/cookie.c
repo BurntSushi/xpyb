@@ -62,8 +62,10 @@ static PyObject *
 xpybCookie_reply(xpybCookie *self, PyObject *args)
 {
     xcb_generic_error_t *error;
-    void *data;
+    xcb_generic_reply_t *data;
+    PyObject *tmp, *arglist, *reply;
 
+    /* Check arguments and connection. */
     if (self->request->is_void) {
 	PyErr_SetString(xpybExcept_base, "Request has no reply.");
 	return NULL;
@@ -71,15 +73,33 @@ xpybCookie_reply(xpybCookie *self, PyObject *args)
     if (xpybConn_invalid(self->conn))
 	return NULL;
 
+    /* Make XCB call */
     data = xcb_wait_for_reply(self->conn->conn, self->cookie.sequence, &error);
     if (xpybError_set(error))
 	return NULL;
-
-    if (xpybReply_populate(self->reply, data) < 0)
+    if (data == NULL) {
+	PyErr_SetString(PyExc_IOError, "I/O error on X server connection.");
 	return NULL;
+    }
 
-    Py_INCREF((PyObject *)self->reply);
-    return (PyObject *)self->reply;
+    /* Create a shim protocol object */
+    tmp = xpybProtobj_create(&xpybProtobj_type, data, 32 + data->length * 4);
+    if (tmp == NULL)
+	goto err1;
+
+    /* Call the reply type object to get a new xcb.Reply instance */
+    arglist = Py_BuildValue("(O)", tmp);
+    if (arglist == NULL)
+	goto err2;
+    reply = PyEval_CallObject((PyObject *)self->reply, arglist);
+    Py_DECREF(arglist);
+    Py_DECREF(tmp);
+    return reply;
+err2:
+    Py_DECREF(tmp);
+err1:
+    free(data);
+    return NULL;
 }
 
 static PyMethodDef xpybCookie_methods[] = {

@@ -94,7 +94,7 @@ xpybExt_send_request(xpybExt *self, PyObject *args, PyObject *kw)
     static char *kwlist[] = { "request", "cookie", "reply", NULL };
     xpybRequest *request;
     xpybCookie *cookie;
-    xpybReply *reply = NULL;
+    PyTypeObject *reply = NULL;
     xcb_protocol_request_t xcb_req;
     struct iovec xcb_parts[4];
     unsigned int seq;
@@ -106,7 +106,7 @@ xpybExt_send_request(xpybExt *self, PyObject *args, PyObject *kw)
     if (!PyArg_ParseTupleAndKeywords(args, kw, "O!O!|O!", kwlist,
 				     &xpybRequest_type, &request,
 				     &xpybCookie_type, &cookie,
-				     &xpybReply_type, &reply))
+				     &PyType_Type, &reply))
 	return NULL;
 
     /* Set up request structure */
@@ -130,7 +130,7 @@ xpybExt_send_request(xpybExt *self, PyObject *args, PyObject *kw)
     /* Set up cookie */
     Py_INCREF(cookie->conn = self->conn);
     Py_INCREF((PyObject *)(cookie->request = request));
-    Py_XINCREF((PyObject *)(cookie->reply = reply));
+    Py_XINCREF(cookie->reply = reply);
     cookie->cookie.sequence = seq;
 
     Py_INCREF(cookie);

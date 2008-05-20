@@ -7,29 +7,10 @@
  * Helpers
  */
 
-int
-xpybReply_populate(xpybReply *self, xcb_generic_reply_t *data)
-{
-    xpybProtobj *obj = (xpybProtobj *)self;
-
-    obj->buf = PyBuffer_FromMemory(data, 32 + data->length * 4);
-    if (obj->buf == NULL)
-	return -1;
-
-    obj->data = data;
-    return 0;
-}
-
 
 /*
  * Infrastructure
  */
-
-static int
-xpybReply_init(PyObject *self, PyObject *args, PyObject *kw)
-{
-    return 0;
-}
 
 
 /*
@@ -57,7 +38,6 @@ PyTypeObject xpybReply_type = {
     PyObject_HEAD_INIT(NULL)
     .tp_name = "xcb.Reply",
     .tp_basicsize = sizeof(xpybReply),
-    .tp_init = xpybReply_init,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic reply object",
     .tp_base = &xpybResponse_type,
