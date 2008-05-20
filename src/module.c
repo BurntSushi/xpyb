@@ -78,13 +78,13 @@ xpyb_add_core(PyObject *self, PyObject *args)
 static PyObject *
 xpyb_add_ext(PyObject *self, PyObject *args)
 {
-    xpybExtkey *key;
+    PyObject *key = Py_None;
     PyObject *value;
 
-    if (!PyArg_ParseTuple(args, "O!O!", &xpybExtkey_type, &key, &PyType_Type, &value))
+    if (!PyArg_ParseTuple(args, "O!|O!", &PyType_Type, &value, &xpybExtkey_type, &key))
 	return NULL;
 
-    if (PyDict_SetItem(xpybModule_extdict, (PyObject *)key, value) < 0)
+    if (PyDict_SetItem(xpybModule_extdict, key, value) < 0)
 	return NULL;
 
     Py_RETURN_NONE;
