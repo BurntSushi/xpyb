@@ -9,4 +9,6 @@
 
 extern PyObject *xpybModule_extdict;
 
+PyMODINIT_FUNC initxcb(void);
+
 #endif
