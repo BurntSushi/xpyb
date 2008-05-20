@@ -110,7 +110,7 @@ PyTypeObject xpybProtobj_type = {
     .tp_init = (initproc)xpybProtobj_init,
     .tp_new = xpybProtobj_new,
     .tp_dealloc = (destructor)xpybProtobj_dealloc,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic X protocol object",
     .tp_as_buffer = &xpybProtobj_bufops
 };

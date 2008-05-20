@@ -31,7 +31,7 @@ PyTypeObject xpybVoid_type = {
     PyObject_HEAD_INIT(NULL)
     .tp_name = "xcb.VoidCookie",
     .tp_basicsize = sizeof(xpybVoid),
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "XCB void cookie object",
     .tp_base = &xpybCookie_type
 };

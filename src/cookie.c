@@ -107,7 +107,7 @@ PyTypeObject xpybCookie_type = {
     .tp_basicsize = sizeof(xpybCookie),
     .tp_new = xpybCookie_new,
     .tp_dealloc = (destructor)xpybCookie_dealloc,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic cookie object",
     .tp_methods = xpybCookie_methods
 };
