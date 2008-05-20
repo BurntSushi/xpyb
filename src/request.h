@@ -7,8 +7,7 @@ typedef struct {
     xpybProtobj base;
     int is_void;
     int is_checked;
-    unsigned char major_opcode;
-    unsigned char minor_opcode;
+    unsigned char opcode;
 } xpybRequest;
 
 extern PyTypeObject xpybRequest_type;

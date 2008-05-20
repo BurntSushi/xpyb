@@ -14,24 +14,24 @@
 static int
 xpybRequest_init(xpybRequest *self, PyObject *args, PyObject *kw)
 {
-    static char *kwlist[] = {"buffer", "void", "checked", NULL };
+    static char *kwlist[] = {"buffer", "opcode", "void", "checked", NULL };
     PyObject *is_void, *is_checked, *buf;
-    const unsigned char *data;
+    unsigned char opcode;
+    const void *data;
     Py_ssize_t size;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "OOO", kwlist, &buf,
-				     &is_void, &is_checked))
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "OBOO", kwlist, &buf,
+				     &opcode, &is_void, &is_checked))
 	return -1;
 
-    if (PyObject_AsReadBuffer(buf, (const void **)&data, &size) < 0)
+    if (PyObject_AsReadBuffer(buf, &data, &size) < 0)
 	return -1;
     if (size < 4) {
 	PyErr_SetString(PyExc_ValueError, "Request buffer too short.");
 	return -1;
     }
 
-    self->major_opcode = data[0];
-    self->minor_opcode = data[1];
+    self->opcode = opcode;
     self->is_void = PyObject_IsTrue(is_void);
     self->is_checked = PyObject_IsTrue(is_checked);
     Py_INCREF(((xpybProtobj *)self)->buf = buf);

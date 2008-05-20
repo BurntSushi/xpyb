@@ -111,13 +111,8 @@ xpybExt_send_request(xpybExt *self, PyObject *args, PyObject *kw)
 
     /* Set up request structure */
     xcb_req.count = 2;
-    if (self->key == (xpybExtkey *)Py_None) {
-	xcb_req.ext = NULL;
-	xcb_req.opcode = request->major_opcode;
-    } else {
-	xcb_req.ext = &self->key->key;
-	xcb_req.opcode = request->minor_opcode;
-    }
+    xcb_req.ext = (self->key != (xpybExtkey *)Py_None) ? &self->key->key : 0;
+    xcb_req.opcode = request->opcode;
     xcb_req.isvoid = request->is_void;
 
     /* Allocate and fill in data strings */
