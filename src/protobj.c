@@ -40,10 +40,10 @@ static int
 xpybProtobj_init(xpybProtobj *self, PyObject *args, PyObject *kw)
 {
     static char *kwlist[] = { "parent", "offset", "size", NULL };
-    Py_ssize_t offset, size = Py_END_OF_BUFFER;
+    Py_ssize_t offset = 0, size = Py_END_OF_BUFFER;
     xpybProtobj *parent;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "O!i|i", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "O!|ii", kwlist,
 				     &xpybProtobj_type, &parent,
 				     &offset, &size))
 	return -1;
