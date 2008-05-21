@@ -30,8 +30,6 @@ xpybExt_init(xpybExt *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "O!|O!", &xpybConn_type, &conn, &xpybExtkey_type, &key))
 	return -1;
-    if (xpybConn_invalid(conn))
-	return -1;
 
     Py_INCREF(self->key = key);
     Py_INCREF(self->conn = conn);

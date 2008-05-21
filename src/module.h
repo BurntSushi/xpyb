@@ -8,6 +8,7 @@
 #include <xcb/xcbext.h>
 
 extern PyObject *xpybModule_extdict;
+extern PyTypeObject *xpybModule_core;
 
 PyMODINIT_FUNC initxcb(void);
 

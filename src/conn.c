@@ -21,6 +21,27 @@ xpybConn_invalid(xpybConn *self)
     return 0;
 }
 
+PyObject *
+xpybConn_make_core(xpybConn *self)
+{
+    PyObject *arglist, *ext;
+
+    /* Make sure core was set. */
+    if (xpybModule_core == NULL) {
+	PyErr_SetString(xpybExcept_base, "No core protocol object has been set.  Did you import xcb.xproto?");
+	return NULL;
+    }
+
+    /* Call the object to get a new xcb.Extension object. */
+    arglist = Py_BuildValue("(O)", self);
+    if (arglist == NULL)
+	return NULL;
+
+    ext = PyEval_CallObject((PyObject *)xpybModule_core, arglist);
+    Py_DECREF(arglist);
+    return ext;
+}
+
 static PyObject *
 xpybConn_make_ext(xpybConn *self, PyObject *key)
 {
@@ -36,30 +57,25 @@ xpybConn_make_ext(xpybConn *self, PyObject *key)
     }
 
     /* Call the object to get a new xcb.Extension object. */
-    if (key == Py_None)
-	arglist = Py_BuildValue("(O)", self);
-    else
-	arglist = Py_BuildValue("(OO)", self, key);
-
+    arglist = Py_BuildValue("(OO)", self, key);
     if (arglist == NULL)
 	return NULL;
+
     ext = (xpybExt *)PyEval_CallObject(result, arglist);
     Py_DECREF(arglist);
     if (ext == NULL)
 	return NULL;
 
-    /* Get the opcode and base numbers for actual (non-core) extensions. */
-    if (key != Py_None) {
-	reply = xcb_get_extension_data(self->conn, &((xpybExtkey *)key)->key);
-	if (!reply->present) {
-	    PyErr_SetString(xpybExcept_ext, "Extension not present on server.");
-	    Py_DECREF(ext);
-	    return NULL;
-	}
-	ext->major_opcode = reply->major_opcode;
-	ext->first_event = reply->first_event;
-	ext->first_error = reply->first_error;
+    /* Get the opcode and base numbers. */
+    reply = xcb_get_extension_data(self->conn, &((xpybExtkey *)key)->key);
+    if (!reply->present) {
+	PyErr_SetString(xpybExcept_ext, "Extension not present on server.");
+	Py_DECREF(ext);
+	return NULL;
     }
+    ext->major_opcode = reply->major_opcode;
+    ext->first_event = reply->first_event;
+    ext->first_error = reply->first_error;
 
     return (PyObject *)ext;
 }
@@ -78,6 +94,7 @@ xpybConn_new(PyTypeObject *self, PyObject *args, PyObject *kw)
 static void
 xpybConn_dealloc(xpybConn *self)
 {
+    Py_CLEAR(self->core);
     Py_CLEAR(self->extcache);
 
     if (self->conn)
@@ -87,13 +104,26 @@ xpybConn_dealloc(xpybConn *self)
 }
 
 static PyObject *
+xpybConn_getattro(xpybConn *self, PyObject *obj)
+{
+    PyObject *result, *core;
+
+    result = PyObject_GenericGetAttr((PyObject *)self, obj);
+    if (result != NULL || xpybModule_core == NULL)
+	return result;
+
+    core = self->core;
+    return core->ob_type->tp_getattro(core, obj);
+}
+
+static PyObject *
 xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
 {
     static char *kwlist[] = { "key", NULL };
-    PyObject *ext, *key = Py_None;
+    PyObject *ext, *key;
 
     /* Parse the extension key argument and check connection. */
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "|O!", kwlist, &xpybExtkey_type, &key))
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "O!", kwlist, &xpybExtkey_type, &key))
 	return NULL;
     if (xpybConn_invalid(self))
 	return NULL;
@@ -263,7 +293,8 @@ PyTypeObject xpybConn_type = {
     .tp_doc = "XCB connection object",
     .tp_methods = xpybConn_methods,
     .tp_members = xpybConn_members,
-    .tp_call = (ternaryfunc)xpybConn_call
+    .tp_call = (ternaryfunc)xpybConn_call,
+    .tp_getattro = (getattrofunc)xpybConn_getattro
 };
 
 

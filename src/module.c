@@ -21,6 +21,7 @@
  */
 
 PyObject *xpybModule_extdict;
+PyTypeObject *xpybModule_core;
 
 
 /*
@@ -34,8 +35,8 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
     const char *displayname = NULL;
     int screenp;
     xcb_connection_t *c;
-    xpybConn *conn = NULL;
-    PyObject *dict;
+    xpybConn *conn;
+    PyObject *dict, *core;
 
     if (!PyArg_ParseTupleAndKeywords(args, kw, "|z", kwlist, &displayname))
 	return NULL;
@@ -43,17 +44,22 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
 	return NULL;
     if ((conn = PyObject_New(xpybConn, &xpybConn_type)) == NULL)
 	goto err1;
+    if ((core = xpybConn_make_core(conn)) == NULL)
+	goto err2;
 
     c = xcb_connect(displayname, &screenp);
     if (xcb_connection_has_error(c)) {
 	PyErr_SetString(xpybExcept_conn, "Failed to connect to X server.");
-	goto err2;
+	goto err3;
     }
 
-    conn->pref_screen = screenp;
     conn->conn = c;
+    conn->pref_screen = screenp;
+    conn->core = core;
     conn->extcache = dict;
     return (PyObject *)conn;
+err3:
+    Py_DECREF(core);
 err2:
     Py_DECREF(conn);
 err1:
@@ -66,6 +72,9 @@ xpyb_add_core(PyObject *self, PyObject *args)
 {
     PyTypeObject *value;
 
+    if (xpybModule_core != NULL)
+	Py_RETURN_NONE;
+
     if (!PyArg_ParseTuple(args, "O!", &PyType_Type, &value))
 	return NULL;
 
@@ -77,6 +86,7 @@ xpyb_add_core(PyObject *self, PyObject *args)
     if (PyDict_SetItem(xpybModule_extdict, Py_None, (PyObject *)value) < 0)
 	return NULL;
 
+    Py_INCREF(xpybModule_core = value);
     Py_RETURN_NONE;
 }
 
