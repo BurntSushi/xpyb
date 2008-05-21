@@ -135,7 +135,10 @@ def py_open(self):
 
     _py_setlevel(2)
     _py('')
-    _py('xcb._add_ext(%sExtension, %s)', _ns.header, 'key' if _ns.is_ext else '')
+    if _ns.is_ext:
+        _py('xcb._add_ext(key, %sExtension)', _ns.header)
+    else:
+        _py('xcb._add_core(%sExtension)', _ns.header)
     
 
 def py_close(self):
