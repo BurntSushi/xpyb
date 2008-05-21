@@ -102,12 +102,17 @@ xpybExt_send_request(xpybExt *self, PyObject *args, PyObject *kw)
     const void *data;
     Py_ssize_t size;
 
-    /* Parse arguments and determine number of data strings. */
+    /* Parse and check arguments */
     if (!PyArg_ParseTupleAndKeywords(args, kw, "O!O!|O!", kwlist,
 				     &xpybRequest_type, &request,
 				     &xpybCookie_type, &cookie,
 				     &PyType_Type, &reply))
 	return NULL;
+
+    if (!PyType_IsSubtype(reply, &xpybReply_type)) {
+	PyErr_SetString(xpybExcept_base, "Type not derived from xcb.Reply.");
+	return NULL;
+    }
 
     /* Set up request structure */
     xcb_req.count = 2;

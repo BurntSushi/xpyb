@@ -27,7 +27,6 @@ xpybConn_make_ext(xpybConn *self, PyObject *key)
     PyObject *result, *arglist;
     xpybExt *ext;
     const xcb_query_extension_reply_t *reply;
-    int rc;
 
     /* Look up the callable object in the global dictionary. */
     result = PyDict_GetItem(xpybModule_extdict, key);
@@ -48,18 +47,6 @@ xpybConn_make_ext(xpybConn *self, PyObject *key)
     Py_DECREF(arglist);
     if (ext == NULL)
 	return NULL;
-
-    /* Make sure what we got is actually an xcb.Extension */
-    rc = PyObject_IsInstance((PyObject *)ext, (PyObject *)&xpybExt_type);
-    switch (rc) {
-    case 1:
-	break;
-    case 0:
-	PyErr_SetString(xpybExcept_ext, "Invalid extension object returned.");
-    default:
-	Py_DECREF(ext);
-	return NULL;
-    }
 
     /* Get the opcode and base numbers for actual (non-core) extensions. */
     if (key != Py_None) {

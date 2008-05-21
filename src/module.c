@@ -64,12 +64,17 @@ err1:
 static PyObject *
 xpyb_add_core(PyObject *self, PyObject *args)
 {
-    PyObject *value;
+    PyTypeObject *value;
 
     if (!PyArg_ParseTuple(args, "O!", &PyType_Type, &value))
 	return NULL;
 
-    if (PyDict_SetItem(xpybModule_extdict, Py_None, value) < 0)
+    if (!PyType_IsSubtype(value, &xpybExt_type)) {
+	PyErr_SetString(xpybExcept_base, "Type not derived from xcb.Extension.");
+	return NULL;
+    }
+
+    if (PyDict_SetItem(xpybModule_extdict, Py_None, (PyObject *)value) < 0)
 	return NULL;
 
     Py_RETURN_NONE;
@@ -78,13 +83,18 @@ xpyb_add_core(PyObject *self, PyObject *args)
 static PyObject *
 xpyb_add_ext(PyObject *self, PyObject *args)
 {
-    PyObject *key = Py_None;
-    PyObject *value;
+    PyTypeObject *value;
+    PyObject *key;
 
-    if (!PyArg_ParseTuple(args, "O!|O!", &PyType_Type, &value, &xpybExtkey_type, &key))
+    if (!PyArg_ParseTuple(args, "O!O!", &PyType_Type, &value, &xpybExtkey_type, &key))
 	return NULL;
 
-    if (PyDict_SetItem(xpybModule_extdict, key, value) < 0)
+    if (!PyType_IsSubtype(value, &xpybExt_type)) {
+	PyErr_SetString(xpybExcept_base, "Type not derived from xcb.Extension.");
+	return NULL;
+    }
+
+    if (PyDict_SetItem(xpybModule_extdict, key, (PyObject *)value) < 0)
 	return NULL;
 
     Py_RETURN_NONE;
