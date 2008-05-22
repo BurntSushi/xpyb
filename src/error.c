@@ -25,6 +25,7 @@ xpybError_set(xpybConn *conn, xcb_generic_error_t *e)
 	error = PyObject_CallFunctionObjArgs(type, shim, NULL);
 	if (error != NULL)
 	    PyErr_SetObject(xpybExcept_proto, error);
+	Py_DECREF(shim);
 	return 1;
     }
     return 0;
@@ -66,7 +67,7 @@ PyTypeObject xpybError_type = {
     .tp_name = "xcb.Error",
     .tp_basicsize = sizeof(xpybError),
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_doc = "XCB generic event object",
+    .tp_doc = "XCB generic error object",
     .tp_base = &xpybResponse_type,
     .tp_getattro = xpybError_getattro
 };

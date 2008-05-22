@@ -11,7 +11,7 @@ PyObject *
 xpybEvent_create(xpybConn *conn, xcb_generic_event_t *e)
 {
     unsigned char opcode = e->response_type;
-    PyObject *shim, *type = (PyObject *)&xpybEvent_type;
+    PyObject *shim, *event, *type = (PyObject *)&xpybEvent_type;
 
     if (opcode < conn->events_len && conn->events[opcode] != NULL)
 	type = conn->events[opcode];
@@ -20,7 +20,9 @@ xpybEvent_create(xpybConn *conn, xcb_generic_event_t *e)
     if (shim == NULL)
 	return NULL;
 
-    return PyObject_CallFunctionObjArgs(type, shim, NULL);
+    event = PyObject_CallFunctionObjArgs(type, shim, NULL);
+    Py_DECREF(shim);
+    return event;
 }
 
 

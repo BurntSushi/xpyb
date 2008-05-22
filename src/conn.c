@@ -24,8 +24,6 @@ xpybConn_invalid(xpybConn *self)
 PyObject *
 xpybConn_make_core(xpybConn *self)
 {
-    PyObject *arglist, *ext;
-
     /* Make sure core was set. */
     if (xpybModule_core == NULL) {
 	PyErr_SetString(xpybExcept_base, "No core protocol object has been set.  Did you import xcb.xproto?");
@@ -33,19 +31,13 @@ xpybConn_make_core(xpybConn *self)
     }
 
     /* Call the object to get a new xcb.Extension object. */
-    arglist = Py_BuildValue("(O)", self);
-    if (arglist == NULL)
-	return NULL;
-
-    ext = PyEval_CallObject((PyObject *)xpybModule_core, arglist);
-    Py_DECREF(arglist);
-    return ext;
+    return PyObject_CallFunctionObjArgs((PyObject *)xpybModule_core, self, NULL);
 }
 
 static PyObject *
 xpybConn_make_ext(xpybConn *self, PyObject *key)
 {
-    PyObject *result, *arglist;
+    PyObject *result;
     xpybExt *ext;
     const xcb_query_extension_reply_t *reply;
 
@@ -57,12 +49,7 @@ xpybConn_make_ext(xpybConn *self, PyObject *key)
     }
 
     /* Call the object to get a new xcb.Extension object. */
-    arglist = Py_BuildValue("(OO)", self, key);
-    if (arglist == NULL)
-	return NULL;
-
-    ext = (xpybExt *)PyEval_CallObject(result, arglist);
-    Py_DECREF(arglist);
+    ext = (xpybExt *)PyObject_CallFunctionObjArgs(result, self, key, NULL);
     if (ext == NULL)
 	return NULL;
 
