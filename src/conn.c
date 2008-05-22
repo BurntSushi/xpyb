@@ -80,6 +80,78 @@ xpybConn_make_ext(xpybConn *self, PyObject *key)
     return (PyObject *)ext;
 }
 
+static int
+xpybConn_setup_ext(xpybConn *self, xpybExt *ext, PyObject *events, PyObject *errors)
+{
+    Py_ssize_t j = 0;
+    unsigned char opcode, newlen;
+    PyObject *num, *type, **newmem;
+
+    while (PyDict_Next(events, &j, &num, &type)) {
+	opcode = ext->first_event + PyInt_AS_LONG(num);
+	if (opcode >= self->events_len) {
+	    newlen = opcode + 1;
+	    newmem = realloc(self->events, newlen * sizeof(PyObject *));
+	    if (newmem == NULL)
+		return -1;
+	    memset(newmem + self->events_len, 0, (newlen - self->events_len) * sizeof(PyObject *));
+	    self->events = newmem;
+	    self->events_len = newlen;
+	}
+	Py_INCREF(self->events[opcode] = type);
+    }
+
+    j = 0;
+    while (PyDict_Next(errors, &j, &num, &type)) {
+	opcode = ext->first_error + PyInt_AS_LONG(num);
+	if (opcode >= self->errors_len) {
+	    newlen = opcode + 1;
+	    newmem = realloc(self->errors, newlen * sizeof(PyObject *));
+	    if (newmem == NULL)
+		return -1;
+	    memset(newmem + self->errors_len, 0, (newlen - self->errors_len) * sizeof(PyObject *));
+	    self->errors = newmem;
+	    self->errors_len = newlen;
+	}
+	Py_INCREF(self->errors[opcode] = type);
+    }
+
+    return 0;
+}
+
+int
+xpybConn_setup(xpybConn *self)
+{
+    PyObject *key, *events, *errors;
+    xpybExt *ext = NULL;
+    Py_ssize_t i = 0;
+    int rc = -1;
+
+    ext = (xpybExt *)xpybModule_core;
+    events = xpybModule_core_events;
+    errors = xpybModule_core_errors;
+    if (xpybConn_setup_ext(self, ext, events, errors) < 0)
+	return -1;
+
+    while (PyDict_Next(xpybModule_ext_events, &i, &key, &events)) {
+	errors = PyDict_GetItem(xpybModule_ext_errors, key);
+	if (errors == NULL)
+	    goto out;
+
+	Py_XDECREF(ext);
+	ext = (xpybExt *)PyObject_CallFunctionObjArgs((PyObject *)self, key, NULL);
+	if (ext == NULL)
+	    goto out;
+
+	if (xpybConn_setup_ext(self, ext, events, errors) < 0)
+	    goto out;
+    }
+
+    rc = 0;
+out:
+    Py_XDECREF(ext);
+    return rc;
+}
 
 /*
  * Infrastructure
@@ -94,12 +166,21 @@ xpybConn_new(PyTypeObject *self, PyObject *args, PyObject *kw)
 static void
 xpybConn_dealloc(xpybConn *self)
 {
+    int i;
+
     Py_CLEAR(self->core);
     Py_CLEAR(self->extcache);
 
     if (self->conn)
 	xcb_disconnect(self->conn);
 
+    for (i = 0; i < self->events_len; i++)
+	Py_XDECREF(self->events[i]);
+    for (i = 0; i < self->errors_len; i++)
+	Py_XDECREF(self->errors[i]);
+
+    free(self->events);
+    free(self->errors);
     self->ob_type->tp_free((PyObject *)self);
 }
 
@@ -137,6 +218,8 @@ xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
 	if (PyDict_SetItem(self->extcache, key, ext) < 0)
 	    return NULL;
     }
+
+    Py_INCREF(ext);
     return ext;
 }
 
@@ -214,11 +297,11 @@ xpybConn_wait_for_event(xpybConn *self, PyObject *args)
     }
 
     if (data->response_type == 0) {
-	xpybError_set((xcb_generic_error_t *)data);
+	xpybError_set(self, (xcb_generic_error_t *)data);
 	return NULL;
     }
 
-    return xpybProtobj_create(&xpybEvent_type, data, sizeof(*data));
+    return xpybEvent_create(self, data);
 }
 
 static PyObject *
@@ -237,11 +320,11 @@ xpybConn_poll_for_event(xpybConn *self, PyObject *args)
     }
 
     if (data->response_type == 0) {
-	xpybError_set((xcb_generic_error_t *)data);
+	xpybError_set(self, (xcb_generic_error_t *)data);
 	return NULL;
     }
 
-    return xpybProtobj_create(&xpybEvent_type, data, sizeof(*data));
+    return xpybEvent_create(self, data);
 }
 
 static PyMethodDef xpybConn_methods[] = {

@@ -7,6 +7,22 @@
  * Helpers
  */
 
+PyObject *
+xpybEvent_create(xpybConn *conn, xcb_generic_event_t *e)
+{
+    unsigned char opcode = e->response_type;
+    PyObject *shim, *type = (PyObject *)&xpybEvent_type;
+
+    if (opcode < conn->events_len && conn->events[opcode] != NULL)
+	type = conn->events[opcode];
+
+    shim = xpybProtobj_create(&xpybProtobj_type, e, sizeof(*e));
+    if (shim == NULL)
+	return NULL;
+
+    return PyObject_CallFunctionObjArgs(type, shim, NULL);
+}
+
 
 /*
  * Infrastructure

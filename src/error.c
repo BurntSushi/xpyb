@@ -8,12 +8,21 @@
  */
 
 int
-xpybError_set(xcb_generic_error_t *e)
+xpybError_set(xpybConn *conn, xcb_generic_error_t *e)
 {
-    PyObject *error;
+    unsigned char opcode;
+    PyObject *shim, *error, *type = (PyObject *)&xpybError_type;
 
     if (e) {
-	error = xpybProtobj_create(&xpybError_type, e, sizeof(*e));
+	opcode = e->error_code;
+	if (opcode < conn->errors_len && conn->errors[opcode] != NULL)
+	    type = conn->errors[opcode];
+
+	shim = xpybProtobj_create(&xpybProtobj_type, e, sizeof(*e));
+	if (shim == NULL)
+	    return 1;
+
+	error = PyObject_CallFunctionObjArgs(type, shim, NULL);
 	if (error != NULL)
 	    PyErr_SetObject(xpybExcept_proto, error);
 	return 1;

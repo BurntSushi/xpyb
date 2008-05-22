@@ -20,8 +20,13 @@
  * Globals
  */
 
-PyObject *xpybModule_extdict;
 PyTypeObject *xpybModule_core;
+PyObject *xpybModule_core_events;
+PyObject *xpybModule_core_errors;
+
+PyObject *xpybModule_extdict;
+PyObject *xpybModule_ext_events;
+PyObject *xpybModule_ext_errors;
 
 
 /*
@@ -33,37 +38,37 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
 {
     static char *kwlist[] = { "display", NULL };
     const char *displayname = NULL;
-    int screenp;
-    xcb_connection_t *c;
     xpybConn *conn;
-    PyObject *dict, *core;
 
+    /* Parse arguments and allocate new objects */
     if (!PyArg_ParseTupleAndKeywords(args, kw, "|z", kwlist, &displayname))
 	return NULL;
-    if ((dict = PyDict_New()) == NULL)
-	return NULL;
     if ((conn = PyObject_New(xpybConn, &xpybConn_type)) == NULL)
-	goto err1;
-    if ((core = xpybConn_make_core(conn)) == NULL)
-	goto err2;
+	return NULL;
+    if ((conn->core = xpybConn_make_core(conn)) == NULL)
+	goto err;
+    if ((conn->extcache = PyDict_New()) == NULL)
+	goto err;
 
-    c = xcb_connect(displayname, &screenp);
-    if (xcb_connection_has_error(c)) {
+    /* Connect to display */
+    conn->conn = xcb_connect(displayname, &conn->pref_screen);
+    if (xcb_connection_has_error(conn->conn)) {
 	PyErr_SetString(xpybExcept_conn, "Failed to connect to X server.");
-	goto err3;
+	goto err;
     }
 
-    conn->conn = c;
-    conn->pref_screen = screenp;
-    conn->core = core;
-    conn->extcache = dict;
+    /* Set up events and errors */
+    conn->events = NULL;
+    conn->events_len = 0;
+    conn->errors = NULL;
+    conn->errors_len = 0;
+
+    if (xpybConn_setup(conn) < 0)
+	goto err;
+
     return (PyObject *)conn;
-err3:
-    Py_DECREF(core);
-err2:
+err:
     Py_DECREF(conn);
-err1:
-    Py_DECREF(dict);
     return NULL;
 }
 
@@ -71,11 +76,13 @@ static PyObject *
 xpyb_add_core(PyObject *self, PyObject *args)
 {
     PyTypeObject *value;
+    PyObject *events, *errors;
 
     if (xpybModule_core != NULL)
 	Py_RETURN_NONE;
 
-    if (!PyArg_ParseTuple(args, "O!", &PyType_Type, &value))
+    if (!PyArg_ParseTuple(args, "O!O!O!", &PyType_Type, &value,
+			  &PyDict_Type, &events, &PyDict_Type, &errors))
 	return NULL;
 
     if (!PyType_IsSubtype(value, &xpybExt_type)) {
@@ -83,10 +90,9 @@ xpyb_add_core(PyObject *self, PyObject *args)
 	return NULL;
     }
 
-    if (PyDict_SetItem(xpybModule_extdict, Py_None, (PyObject *)value) < 0)
-	return NULL;
-
     Py_INCREF(xpybModule_core = value);
+    Py_INCREF(xpybModule_core_events = events);
+    Py_INCREF(xpybModule_core_errors = errors);
     Py_RETURN_NONE;
 }
 
@@ -94,9 +100,10 @@ static PyObject *
 xpyb_add_ext(PyObject *self, PyObject *args)
 {
     PyTypeObject *value;
-    PyObject *key;
+    PyObject *key, *events, *errors;
 
-    if (!PyArg_ParseTuple(args, "O!O!", &PyType_Type, &value, &xpybExtkey_type, &key))
+    if (!PyArg_ParseTuple(args, "O!O!O!O!", &xpybExtkey_type, &key, &PyType_Type, &value,
+			  &PyDict_Type, &events, &PyDict_Type, &errors))
 	return NULL;
 
     if (!PyType_IsSubtype(value, &xpybExt_type)) {
@@ -105,6 +112,10 @@ xpyb_add_ext(PyObject *self, PyObject *args)
     }
 
     if (PyDict_SetItem(xpybModule_extdict, key, (PyObject *)value) < 0)
+	return NULL;
+    if (PyDict_SetItem(xpybModule_ext_events, key, events) < 0)
+	return NULL;
+    if (PyDict_SetItem(xpybModule_ext_errors, key, errors) < 0)
 	return NULL;
 
     Py_RETURN_NONE;
@@ -169,6 +180,10 @@ initxcb(void)
 
     /* Create other internal objects */
     if ((xpybModule_extdict = PyDict_New()) == NULL)
+	return;
+    if ((xpybModule_ext_events = PyDict_New()) == NULL)
+	return;
+    if ((xpybModule_ext_errors = PyDict_New()) == NULL)
 	return;
 
     /* Set up all the types */

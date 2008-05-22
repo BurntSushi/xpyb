@@ -135,10 +135,20 @@ def py_open(self):
 
     _py_setlevel(2)
     _py('')
+    _py('_events = {')
+
+    _py_setlevel(3)
+    _py('}')
+    _py('')
+    _py('_errors = {')
+
+    _py_setlevel(4)
+    _py('}')
+    _py('')
     if _ns.is_ext:
-        _py('xcb._add_ext(key, %sExtension)', _ns.header)
+        _py('xcb._add_ext(key, %sExtension, _events, _errors)', _ns.header)
     else:
-        _py('xcb._add_core(%sExtension)', _ns.header)
+        _py('xcb._add_core(%sExtension, _events, _errors)', _ns.header)
     
 
 def py_close(self):
@@ -182,6 +192,8 @@ def _py_type_setup(self, name, postfix=''):
     self.py_checked_name = _t(name) + 'Checked'
     self.py_unchecked_name = _t(name) + 'Unchecked'
     self.py_reply_name = _t(name) + 'Reply'
+    self.py_event_name = _t(name) + 'Event'
+    self.py_error_name = _t(name) + 'Error'
     self.py_cookie_name = _t(name) + 'Cookie'
 
     if self.is_container:
@@ -462,25 +474,24 @@ def py_request(self, name):
         _py_request_helper(self, name, True, False)
         _py_request_helper(self, name, True, True)
 
-def _py_opcode(name, opcode):
-    '''
-    Declares the opcode define for requests, events, and errors.
-    '''
-    _py_setlevel(0)
-    _py('')
-    _py('%s = %s', _t(name).upper(), opcode)
-    
 def py_event(self, name):
     '''
     Exported function that handles event declarations.
     '''
     _py_type_setup(self, name, 'Event')
 
-    # Opcode define
-    _py_opcode(name, self.opcodes[name])
-
     # Structure definition
-#    _py_complex(self)
+    _py_setlevel(0)
+    _py('')
+    _py('class %s(xcb.Event):', self.py_event_name)
+    _py('    def __init__(self, parent):')
+    _py('        xcb.Event.__init__(self, parent)')
+
+    _py_complex(self, name)
+
+    # Opcode define
+    _py_setlevel(2)
+    _py('    %s : %s,', self.opcodes[name], self.py_event_name)
 
 def py_error(self, name):
     '''
@@ -488,11 +499,18 @@ def py_error(self, name):
     '''
     _py_type_setup(self, name, 'Error')
 
-    # Opcode define
-    _py_opcode(name, self.opcodes[name])
-
     # Structure definition
-#    _py_complex(self)
+    _py_setlevel(0)
+    _py('')
+    _py('class %s(xcb.Error):', self.py_error_name)
+    _py('    def __init__(self, parent):')
+    _py('        xcb.Error.__init__(self, parent)')
+
+    _py_complex(self, name)
+
+    # Opcode define
+    _py_setlevel(3)
+    _py('    %s : %s,', self.opcodes[name], self.py_error_name)
 
 
 # Main routine starts here

@@ -52,7 +52,7 @@ xpybCookie_check(xpybCookie *self, PyObject *args)
 	return NULL;
 
     error = xcb_request_check(self->conn->conn, self->cookie);
-    if (xpybError_set(error))
+    if (xpybError_set(self->conn, error))
 	return NULL;
 
     Py_RETURN_NONE;
@@ -75,7 +75,7 @@ xpybCookie_reply(xpybCookie *self, PyObject *args)
 
     /* Make XCB call */
     data = xcb_wait_for_reply(self->conn->conn, self->cookie.sequence, &error);
-    if (xpybError_set(error))
+    if (xpybError_set(self->conn, error))
 	return NULL;
     if (data == NULL) {
 	PyErr_SetString(PyExc_IOError, "I/O error on X server connection.");

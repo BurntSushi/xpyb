@@ -7,8 +7,13 @@
 #include <xcb/xcb.h>
 #include <xcb/xcbext.h>
 
-extern PyObject *xpybModule_extdict;
 extern PyTypeObject *xpybModule_core;
+extern PyObject *xpybModule_core_events;
+extern PyObject *xpybModule_core_errors;
+
+extern PyObject *xpybModule_extdict;
+extern PyObject *xpybModule_ext_events;
+extern PyObject *xpybModule_ext_errors;
 
 PyMODINIT_FUNC initxcb(void);
 
