@@ -78,16 +78,16 @@ def _b(bool):
 def _py_push_format(field, prefix=''):
     global _py_fmt_fmt, _py_fmt_size, _py_fmt_list
 
-    _py_fmt_fmt = _py_fmt_fmt + _cardinal_types[_t(field.type.name)]
-    _py_fmt_size = _py_fmt_size + field.type.size
+    _py_fmt_fmt += _cardinal_types[_t(field.type.name)]
+    _py_fmt_size += field.type.size
     _py_fmt_list.append(prefix + _n(field.field_name))
 
 def _py_push_pad(nmemb):
     global _py_fmt_fmt, _py_fmt_size, _py_fmt_list
 
     num = '' if nmemb == 1 else str(nmemb)
-    _py_fmt_fmt = _py_fmt_fmt + num + 'x'
-    _py_fmt_size = _py_fmt_size + nmemb
+    _py_fmt_fmt += num + 'x'
+    _py_fmt_size += nmemb
 
 def _py_flush_format():
     global _py_fmt_fmt, _py_fmt_size, _py_fmt_list
@@ -175,7 +175,7 @@ def py_enum(self, name):
 
     for (enam, eval) in self.values:
         _py('    %s = %s', _n(enam), eval if eval != '' else count)
-        count = count + 1
+        count += 1
 
 def _py_type_setup(self, name, postfix=''):
     '''
@@ -277,22 +277,22 @@ def _py_complex(self, name):
         if len(list) > 0:
             _py('        (%s,) = unpack_from(\'%s\', self, count)', list, format)
         if size > 0:
-            _py('        count = count + %d', size)
+            _py('        count += %d', size)
                 
         if field.type.is_list:
             _py('        self.%s = xcb.List(self, count, %s, %s, %s)', _n(field.field_name), _py_get_expr(field.type.expr), field.py_listtype, field.py_listsize)
-            _py('        count = count + len(self.%s)', _n(field.field_name))
+            _py('        count += len(self.%s)', _n(field.field_name))
         elif field.type.is_container and field.type.fixed_size():
             _py('        self.%s = %s(self, count, %s)', _n(field.field_name), field.py_type, field.type.size)
-            _py('        count = count + %s', field.type.size)
+            _py('        count += %s', field.type.size)
         else:
             _py('        self.%s = %s(self, count)', _n(field.field_name), field.py_type)
-            _py('        count = count + len(self.%s)', _n(field.field_name))
+            _py('        count += len(self.%s)', _n(field.field_name))
 
     (format, size, list) = _py_flush_format()
     if len(list) > 0:
         _py('        (%s,) = unpack_from(\'%s\', self, count)', list, format)
-        _py('        count = count + %d', size)
+        _py('        count += %d', size)
 
     if self.fixed_size() or self.is_reply:
         if len(self.fields) > 0:
