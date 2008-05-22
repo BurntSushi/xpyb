@@ -11,12 +11,17 @@ int
 xpybError_set(xpybConn *conn, xcb_generic_error_t *e)
 {
     unsigned char opcode;
-    PyObject *shim, *error, *type = (PyObject *)&xpybError_type;
+    PyObject *shim, *error, *type, *except;
+
+    type = (PyObject *)&xpybError_type;
+    except = xpybExcept_proto;
 
     if (e) {
 	opcode = e->error_code;
-	if (opcode < conn->errors_len && conn->errors[opcode] != NULL)
-	    type = conn->errors[opcode];
+	if (opcode < conn->errors_len && conn->errors[opcode] != NULL) {
+	    type = PyTuple_GET_ITEM(conn->errors[opcode], 0);
+	    except = PyTuple_GET_ITEM(conn->errors[opcode], 1);
+	}
 
 	shim = xpybProtobj_create(&xpybProtobj_type, e, sizeof(*e));
 	if (shim == NULL)
@@ -24,7 +29,7 @@ xpybError_set(xpybConn *conn, xcb_generic_error_t *e)
 
 	error = PyObject_CallFunctionObjArgs(type, shim, NULL);
 	if (error != NULL)
-	    PyErr_SetObject(xpybExcept_proto, error);
+	    PyErr_SetObject(except, error);
 	Py_DECREF(shim);
 	return 1;
     }

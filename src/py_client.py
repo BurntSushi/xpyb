@@ -9,7 +9,7 @@ import re
 
 # Some hacks to make the API more readable, and to keep backwards compability
 _pyname_re = re.compile('^\d')
-#_cname_special_cases = {'DECnet':'decnet'}
+_pyname_except_re = re.compile('^Bad')
 
 _py_reserved_words = [ 'None', 'def', 'class', 'and', 'or' ]
 
@@ -193,8 +193,14 @@ def _py_type_setup(self, name, postfix=''):
     self.py_unchecked_name = _t(name) + 'Unchecked'
     self.py_reply_name = _t(name) + 'Reply'
     self.py_event_name = _t(name) + 'Event'
-    self.py_error_name = _t(name) + 'Error'
     self.py_cookie_name = _t(name) + 'Cookie'
+
+    if _pyname_except_re.match(_t(name)):
+        self.py_error_name = re.sub('Bad', '', _t(name), 1) + 'Error'
+        self.py_except_name = _t(name)
+    else:
+        self.py_error_name = _t(name) + 'Error'
+        self.py_except_name = 'Bad' + _t(name)
 
     if self.is_container:
 
@@ -508,9 +514,14 @@ def py_error(self, name):
 
     _py_complex(self, name)
 
+    # Exception definition
+    _py('')
+    _py('class %s(xcb.ProtocolException):', self.py_except_name)
+    _py('    pass')
+
     # Opcode define
     _py_setlevel(3)
-    _py('    %s : %s,', self.opcodes[name], self.py_error_name)
+    _py('    %s : (%s, %s),', self.opcodes[name], self.py_error_name, self.py_except_name)
 
 
 # Main routine starts here

@@ -22,18 +22,18 @@ int xpybExcept_modinit(PyObject *m)
     if (PyModule_AddObject(m, "ConnectException", xpybExcept_conn) < 0)
 	return -1;
 
-    xpybExcept_ext = PyErr_NewException("xcb.ExtensionError", xpybExcept_base, NULL);
+    xpybExcept_ext = PyErr_NewException("xcb.ExtensionException", xpybExcept_base, NULL);
     if (xpybExcept_ext == NULL)
 	return -1;
     Py_INCREF(xpybExcept_ext);
-    if (PyModule_AddObject(m, "ExtensionError", xpybExcept_ext) < 0)
+    if (PyModule_AddObject(m, "ExtensionException", xpybExcept_ext) < 0)
 	return -1;
 
-    xpybExcept_proto = PyErr_NewException("xcb.ProtocolError", xpybExcept_base, NULL);
+    xpybExcept_proto = PyErr_NewException("xcb.ProtocolException", xpybExcept_base, NULL);
     if (xpybExcept_proto == NULL)
 	return -1;
     Py_INCREF(xpybExcept_proto);
-    if (PyModule_AddObject(m, "ProtocolError", xpybExcept_proto) < 0)
+    if (PyModule_AddObject(m, "ProtocolException", xpybExcept_proto) < 0)
 	return -1;
 
     return 0;
