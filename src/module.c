@@ -10,6 +10,7 @@
 #include "struct.h"
 #include "union.h"
 #include "list.h"
+#include "iter.h"
 #include "conn.h"
 #include "extkey.h"
 #include "ext.h"
@@ -215,7 +216,10 @@ initxcb(void)
 	return;
     if (xpybUnion_modinit(m) < 0)
 	return;
+
     if (xpybList_modinit(m) < 0)
+	return;
+    if (xpybIter_modinit(m) < 0)
 	return;
 
     if (xpybVoid_modinit(m) < 0)
