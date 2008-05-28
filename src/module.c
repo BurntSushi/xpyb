@@ -31,18 +31,45 @@ PyObject *xpybModule_ext_errors;
 
 
 /*
+ * Helpers
+ */
+
+static int
+xpyb_parse_auth(const char *authstr, int authlen, xcb_auth_info_t *auth)
+{
+    int i = 0;
+
+    while (i < authlen && authstr[i] != ':')
+	i++;
+
+    if (i >= authlen) {
+	PyErr_SetString(xpybExcept_base, "Auth string must take the form '<name>:<data>'.");
+	return -1;
+    }
+
+    auth->name = (char *)authstr;
+    auth->namelen = i++;
+    auth->data = (char *)authstr + i;
+    auth->datalen = authlen - i;
+    return 0;
+}
+
+/*
  * Module functions
  */
 
 static PyObject *
 xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
 {
-    static char *kwlist[] = { "display", NULL };
-    const char *displayname = NULL;
+    static char *kwlist[] = { "display", "fd", "auth", NULL };
+    const char *displayname = NULL, *authstr = NULL;
+    xcb_auth_info_t auth, *authptr = NULL;
     xpybConn *conn;
+    int authlen, fd = -1;
 
     /* Parse arguments and allocate new objects */
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "|z", kwlist, &displayname))
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "|ziz#", kwlist, &displayname,
+				     &fd, &authstr, &authlen))
 	return NULL;
     if ((conn = PyObject_New(xpybConn, &xpybConn_type)) == NULL)
 	return NULL;
@@ -51,8 +78,19 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
     if ((conn->extcache = PyDict_New()) == NULL)
 	goto err;
 
+    /* Set up authorization */
+    if (authstr != NULL) {
+	if (xpyb_parse_auth(authstr, authlen, &auth) < 0)
+	    goto err;
+	authptr = &auth;
+    }
+
     /* Connect to display */
-    conn->conn = xcb_connect(displayname, &conn->pref_screen);
+    if (fd < 0)
+	conn->conn = xcb_connect_to_display_with_auth_info(displayname, authptr, &conn->pref_screen);
+    else
+	conn->conn = xcb_connect_to_fd(fd, authptr);
+
     if (xcb_connection_has_error(conn->conn)) {
 	PyErr_SetString(xpybExcept_conn, "Failed to connect to X server.");
 	goto err;
