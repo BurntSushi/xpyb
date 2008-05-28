@@ -78,7 +78,7 @@ def _b(bool):
 def _py_push_format(field, prefix=''):
     global _py_fmt_fmt, _py_fmt_size, _py_fmt_list
 
-    _py_fmt_fmt += _cardinal_types[_t(field.type.name)]
+    _py_fmt_fmt += field.type.py_format_str
     _py_fmt_size += field.type.size
     _py_fmt_list.append(prefix + _n(field.field_name))
 
@@ -202,8 +202,26 @@ def _py_type_setup(self, name, postfix=''):
         self.py_error_name = _t(name) + 'Error'
         self.py_except_name = 'Bad' + _t(name)
 
-    if self.is_container:
+    if self.is_pad:
+        self.py_format_str = ('' if self.nmemb == 1 else str(self.nmemb)) + 'x'
+        self.py_format_len = 0
 
+    elif self.is_simple or self.is_expr:
+        self.py_format_str = _cardinal_types[_t(self.name)]
+        self.py_format_len = 1
+
+    elif self.is_list:
+        if self.fixed_size():
+            self.py_format_str = str(self.nmemb) + _cardinal_types[_t(self.member.name)]
+            self.py_format_len = self.nmemb
+        else:
+            self.py_format_str = None
+            self.py_format_len = -1
+
+    elif self.is_container:
+
+        self.py_format_str = ''
+        self.py_format_len = 0
         self.py_fixed_size = 0
 
         for field in self.fields:
@@ -211,16 +229,23 @@ def _py_type_setup(self, name, postfix=''):
 
             field.py_type = _t(field.field_type)
 
+            if field.type.py_format_len < 0:
+                self.py_format_str = None
+                self.py_format_len = -1
+            elif self.py_format_len >= 0:
+                self.py_format_str += field.type.py_format_str
+                self.py_format_len += field.type.py_format_len
+
             if field.type.is_list:
                 _py_type_setup(field.type.member, field.field_type)
 
                 field.py_listtype = _t(field.type.member.name)
                 if field.type.member.is_simple:
-                    field.py_listtype = '\'%s\'' % _cardinal_types[field.py_listtype]
+                    field.py_listtype = "'" + field.type.member.py_format_str + "'"
 
-                field.py_listsize = '-1'
+                field.py_listsize = -1
                 if field.type.member.fixed_size():
-                    field.py_listsize = '%d' % field.type.member.size
+                    field.py_listsize = field.type.member.size
 
             if field.type.fixed_size():
                 self.py_fixed_size += field.type.size
@@ -280,7 +305,7 @@ def _py_complex(self, name):
             _py('        count += %d', size)
                 
         if field.type.is_list:
-            _py('        self.%s = xcb.List(self, count, %s, %s, %s)', _n(field.field_name), _py_get_expr(field.type.expr), field.py_listtype, field.py_listsize)
+            _py('        self.%s = xcb.List(self, count, %s, %s, %d)', _n(field.field_name), _py_get_expr(field.type.expr), field.py_listtype, field.py_listsize)
             _py('        count += len(self.%s)', _n(field.field_name))
         elif field.type.is_container and field.type.fixed_size():
             _py('        self.%s = %s(self, count, %s)', _n(field.field_name), field.py_type, field.type.size)
@@ -345,7 +370,7 @@ def py_union(self, name):
             _py('        self.%s = %s(self, 0, %s)', _n(field.field_name), field.py_type, field.type.size)
             _py('        count = max(count, %s)', field.type.size)
         elif field.type.is_simple:
-            _py('        self.%s = unpack_from(\'%s\', self)', _n(field.field_name),_cardinal_types[_t(field.type.name)])
+            _py('        self.%s = unpack_from(\'%s\', self)', _n(field.field_name), field.type.py_format_str)
             _py('        count = max(count, %s)', field.type.size)
         else:
             _py('        self.%s = %s(self, 0)', _n(field.field_name), field.py_type)
@@ -436,16 +461,17 @@ def _py_request_helper(self, name, void, regular):
             _py('        buf.write(pack(\'%s\', %s))', format, list)
 
         if field.type.is_expr:
-            _py('        buf.write(pack(\'%s\', %s))', _cardinal_types[_t(field.type.name)], _py_get_expr(field.type.expr))
+            _py('        buf.write(pack(\'%s\', %s))', field.type.py_format_str, _py_get_expr(field.type.expr))
         elif field.type.is_pad:
             _py('        buf.write(pack(\'%sx\'))', field.type.nmemb)
         elif field.type.is_container:
-            _py('        buf.write(%s)', _n(field.field_name))
+            _py('        for elt in xcb.Iterator(%s, %d, \'%s\', False):', _n(field.field_name), field.type.py_format_len, _n(field.field_name))
+            _py('            buf.write(pack(\'%s\', *elt))', field.type.py_format_str)
         elif field.type.is_list and field.type.member.is_simple:
-            _py('        buf.write(array(\'%s\', %s))', _cardinal_types[_t(field.type.member.name)], _n(field.field_name))
+            _py('        buf.write(array(\'%s\', %s))', field.type.member.py_format_str, _n(field.field_name))
         else:
-            _py('        for elt in %s:', _n(field.field_name))
-            _py('            buf.write(elt)')
+            _py('        for elt in xcb.Iterator(%s, %d, \'%s\', True):', _n(field.field_name), field.type.member.py_format_len, _n(field.field_name))
+            _py('            buf.write(pack(\'%s\', *elt))', field.type.member.py_format_str)
 
     (format, size, list) = _py_flush_format()
     if size > 0:
