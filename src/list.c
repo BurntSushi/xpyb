@@ -47,12 +47,10 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 {
     static char *kwlist[] = { "parent", "offset", "length", "type", "size", NULL };
     Py_ssize_t i, datalen, cur, offset, length, size = -1;
-    xpybProtobj *parent, *sobj;
-    PyObject *type, *obj, *arglist;
+    PyObject *parent, *type, *obj, *arglist;
     const char *data;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "O!iiO|i", kwlist,
-				     &xpybProtobj_type, &parent,
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "OiiO|i", kwlist, &parent,
 				     &offset, &length, &type, &size))
 	return -1;
 
@@ -60,7 +58,7 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
     if (self->list == NULL)
 	return -1;
 
-    if (PyObject_AsReadBuffer(parent->buf, (const void **)&data, &datalen) < 0)
+    if (PyObject_AsReadBuffer(parent, (const void **)&data, &datalen) < 0)
 	return -1;
     if (length * size - offset > datalen) {
 	PyErr_SetString(xpybExcept_base, "Protocol object buffer too short.");
@@ -98,12 +96,11 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 	    return -1;
     }
 
-    sobj = (xpybProtobj *)self;
-    sobj->buf = PyBuffer_FromObject(parent->buf, offset, cur);
-    if (sobj->buf == NULL)
+    obj = PyBuffer_FromObject(parent, offset, cur);
+    if (obj == NULL)
 	return -1;
 
-    Py_INCREF(sobj->parent = (PyObject *)parent);
+    ((xpybProtobj *)self)->buf = obj;
     return 0;
 }
 

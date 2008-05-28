@@ -23,7 +23,7 @@ xpybError_set(xpybConn *conn, xcb_generic_error_t *e)
 	    except = PyTuple_GET_ITEM(conn->errors[opcode], 1);
 	}
 
-	shim = xpybProtobj_create(&xpybProtobj_type, e, sizeof(*e));
+	shim = PyBuffer_FromMemory(e, sizeof(*e));
 	if (shim == NULL)
 	    return 1;
 

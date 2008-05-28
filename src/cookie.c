@@ -83,7 +83,7 @@ xpybCookie_reply(xpybCookie *self, PyObject *args)
     }
 
     /* Create a shim protocol object */
-    shim = xpybProtobj_create(&xpybProtobj_type, data, 32 + data->length * 4);
+    shim = PyBuffer_FromMemory(data, 32 + data->length * 4);
     if (shim == NULL)
 	goto err1;
 

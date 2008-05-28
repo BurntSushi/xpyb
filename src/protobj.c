@@ -2,29 +2,6 @@
 #include "except.h"
 #include "protobj.h"
 
-/*
- * Helpers
- */
-
-PyObject *
-xpybProtobj_create(PyTypeObject *type, void *data, Py_ssize_t size)
-{
-    xpybProtobj *obj;
-    PyObject *buf;
-
-    obj = PyObject_New(xpybProtobj, type);
-    if (obj == NULL)
-	return NULL;
-    buf = PyBuffer_FromMemory(data, size);
-    if (buf == NULL)
-	return NULL;
-
-    obj->parent = NULL;
-    obj->buf = buf;
-    obj->data = data;
-    return (PyObject *)obj;
-}
-
 
 /*
  * Infrastructure
@@ -41,18 +18,16 @@ xpybProtobj_init(xpybProtobj *self, PyObject *args, PyObject *kw)
 {
     static char *kwlist[] = { "parent", "offset", "size", NULL };
     Py_ssize_t offset = 0, size = Py_END_OF_BUFFER;
-    xpybProtobj *parent;
+    PyObject *parent;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "O!|ii", kwlist,
-				     &xpybProtobj_type, &parent,
-				     &offset, &size))
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "O|ii", kwlist,
+				     &parent, &offset, &size))
 	return -1;
 
-    self->buf = PyBuffer_FromObject(parent->buf, offset, size);
+    self->buf = PyBuffer_FromObject(parent, offset, size);
     if (self->buf == NULL)
 	return -1;
 
-    Py_INCREF(self->parent = (PyObject *)parent);
     return 0;
 }
 
@@ -60,7 +35,6 @@ static void
 xpybProtobj_dealloc(xpybProtobj *self)
 {
     Py_CLEAR(self->buf);
-    Py_CLEAR(self->parent);
     free(self->data);
     self->ob_type->tp_free((PyObject *)self);
 }

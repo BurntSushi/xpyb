@@ -16,7 +16,7 @@ xpybEvent_create(xpybConn *conn, xcb_generic_event_t *e)
     if (opcode < conn->events_len && conn->events[opcode] != NULL)
 	type = conn->events[opcode];
 
-    shim = xpybProtobj_create(&xpybProtobj_type, e, sizeof(*e));
+    shim = PyBuffer_FromMemory(e, sizeof(*e));
     if (shim == NULL)
 	return NULL;
 
