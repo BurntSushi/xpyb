@@ -18,6 +18,10 @@ xpybConn_invalid(xpybConn *self)
 	PyErr_SetString(xpybExcept_base, "Invalid connection.");
 	return 1;
     }
+    if (xcb_connection_has_error(self->conn)) {
+	PyErr_SetString(xpybExcept_base, "An error has occurred on the connection.");
+	return 1;
+    }
     return 0;
 }
 
@@ -231,22 +235,23 @@ static PyMemberDef xpybConn_members[] = {
  */
 
 static PyObject *
-xpybConn_flush(xpybConn *self, PyObject *args)
+xpybConn_has_error(xpybConn *self, PyObject *args)
+{
+    if (self->conn == NULL) {
+	PyErr_SetString(xpybExcept_base, "Invalid connection.");
+	return NULL;
+    }
+
+    return Py_BuildValue("i", xcb_connection_has_error(self->conn));
+}
+
+static PyObject *
+xpybConn_get_file_descriptor(xpybConn *self, PyObject *args)
 {
     if (xpybConn_invalid(self))
 	return NULL;
 
-    xcb_flush(self->conn);
-    Py_RETURN_NONE;
-}
-
-static PyObject *
-xpybConn_disconnect(xpybConn *self, PyObject *args)
-{
-    if (self->conn)
-	xcb_disconnect(self->conn);
-    self->conn = NULL;
-    Py_RETURN_NONE;
+    return Py_BuildValue("i", xcb_get_file_descriptor(self->conn));
 }
 
 static PyObject *
@@ -266,6 +271,15 @@ xpybConn_prefetch_maximum_request_length(xpybConn *self, PyObject *args)
 
     xcb_prefetch_maximum_request_length(self->conn);
     Py_RETURN_NONE;
+}
+
+static PyObject *
+xpybConn_get_setup(xpybConn *self, PyObject *args)
+{
+    if (xpybConn_invalid(self))
+	return NULL;
+
+    return NULL; /* XXX */
 }
 
 static PyObject *
@@ -314,16 +328,52 @@ xpybConn_poll_for_event(xpybConn *self, PyObject *args)
     return xpybEvent_create(self, data);
 }
 
-static PyMethodDef xpybConn_methods[] = {
-    { "flush",
-      (PyCFunction)xpybConn_flush,
-      METH_NOARGS,
-      "Forces any buffered output to be written to the server." },
+static PyObject *
+xpybConn_flush(xpybConn *self, PyObject *args)
+{
+    if (xpybConn_invalid(self))
+	return NULL;
 
-    { "disconnect",
-      (PyCFunction)xpybConn_disconnect,
+    xcb_flush(self->conn);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+xpybConn_generate_id(xpybConn *self)
+{
+    unsigned int xid;
+
+    if (xpybConn_invalid(self))
+	return NULL;
+
+    xid = xcb_generate_id(self->conn);
+    if (xid == (unsigned int)-1) {
+	PyErr_SetString(xpybExcept_base, "No more free XID's available.");
+	return NULL;
+    }
+
+    return Py_BuildValue("I", xid);
+}
+
+static PyObject *
+xpybConn_disconnect(xpybConn *self, PyObject *args)
+{
+    if (self->conn)
+	xcb_disconnect(self->conn);
+    self->conn = NULL;
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef xpybConn_methods[] = {
+    { "has_error",
+      (PyCFunction)xpybConn_has_error,
       METH_NOARGS,
-      "Disconnects from the X server." },
+      "Test whether the connection has shut down due to a fatal error." },
+
+    { "get_file_descriptor",
+      (PyCFunction)xpybConn_get_file_descriptor,
+      METH_NOARGS,
+      "Access the file descriptor of the connection." },
 
     { "get_maximum_request_length",
       (PyCFunction)xpybConn_get_maximum_request_length,
@@ -335,6 +385,11 @@ static PyMethodDef xpybConn_methods[] = {
       METH_NOARGS,
       "Prefetch the maximum request length without blocking." },
 
+    { "get_setup",
+      (PyCFunction)xpybConn_get_setup,
+      METH_NOARGS,
+      "Accessor for the connection information returned by the server." },
+
     { "wait_for_event",
       (PyCFunction)xpybConn_wait_for_event,
       METH_NOARGS,
@@ -344,6 +399,21 @@ static PyMethodDef xpybConn_methods[] = {
       (PyCFunction)xpybConn_poll_for_event,
       METH_NOARGS,
       "Returns the next event or raises the next error from the server." },
+
+    { "flush",
+      (PyCFunction)xpybConn_flush,
+      METH_NOARGS,
+      "Forces any buffered output to be written to the server." },
+
+    { "generate_id",
+      (PyCFunction)xpybConn_generate_id,
+      METH_NOARGS,
+      "Allocates an XID for a new object." },
+
+    { "disconnect",
+      (PyCFunction)xpybConn_disconnect,
+      METH_NOARGS,
+      "Disconnects from the X server." },
 
     { NULL } /* terminator */
 };
