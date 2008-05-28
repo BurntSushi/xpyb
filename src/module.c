@@ -142,11 +142,44 @@ xpyb_resize_obj(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject *
+xpyb_popcount(PyObject *self, PyObject *args)
+{
+    unsigned int i;
+
+    if (!PyArg_ParseTuple(args, "I", &i))
+	return NULL;
+
+    return Py_BuildValue("I", xcb_popcount(i));
+}
+
+static PyObject *
+xpyb_type_pad(PyObject *self, PyObject *args)
+{
+    unsigned int i, t;
+
+    if (!PyArg_ParseTuple(args, "II", &t, &i))
+	return NULL;
+
+    return Py_BuildValue("I", -i & (t > 4 ? 3 : t - 1));
+}
+
+
 static PyMethodDef XCBMethods[] = {
     { "connect",
       (PyCFunction)xpyb_connect,
       METH_VARARGS | METH_KEYWORDS,
       "Connects to the X server." },
+
+    { "popcount",
+      (PyCFunction)xpyb_popcount,
+      METH_VARARGS,
+      "Counts number of bits set in a bitmask." },
+
+    { "type_pad",
+      (PyCFunction)xpyb_type_pad,
+      METH_VARARGS,
+      "Returns number of padding bytes needed for a type size." },
 
     { "_add_core",
       (PyCFunction)xpyb_add_core,
@@ -185,6 +218,22 @@ initxcb(void)
     if ((xpybModule_ext_events = PyDict_New()) == NULL)
 	return;
     if ((xpybModule_ext_errors = PyDict_New()) == NULL)
+	return;
+
+    /* Add integer constants */
+    if (PyModule_AddIntConstant(m, "X_PROTOCOL", X_PROTOCOL) < 0)
+	return;
+    if (PyModule_AddIntConstant(m, "X_PROTOCOL_REVISION", X_PROTOCOL_REVISION) < 0)
+	return;
+    if (PyModule_AddIntConstant(m, "X_TCP_PORT", X_TCP_PORT) < 0)
+	return;
+    if (PyModule_AddIntConstant(m, "NONE", XCB_NONE) < 0)
+	return;
+    if (PyModule_AddIntConstant(m, "COPY_FROM_PARENT", XCB_COPY_FROM_PARENT) < 0)
+	return;
+    if (PyModule_AddIntConstant(m, "CURRENT_TIME", XCB_CURRENT_TIME) < 0)
+	return;
+    if (PyModule_AddIntConstant(m, "NO_SYMBOL", XCB_NO_SYMBOL) < 0)
 	return;
 
     /* Set up all the types */
