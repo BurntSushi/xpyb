@@ -8,6 +8,7 @@
 #include <xcb/xcbext.h>
 
 extern PyTypeObject *xpybModule_core;
+extern PyTypeObject *xpybModule_setup;
 extern PyObject *xpybModule_core_events;
 extern PyObject *xpybModule_core_errors;
 

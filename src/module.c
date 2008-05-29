@@ -22,6 +22,7 @@
  */
 
 PyTypeObject *xpybModule_core;
+PyTypeObject *xpybModule_setup;
 PyObject *xpybModule_core_events;
 PyObject *xpybModule_core_errors;
 
@@ -96,7 +97,8 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
 	goto err;
     }
 
-    /* Set up events and errors */
+    /* Initialize all other fields */
+    conn->setup = NULL;
     conn->events = NULL;
     conn->events_len = 0;
     conn->errors = NULL;
@@ -114,24 +116,29 @@ err:
 static PyObject *
 xpyb_add_core(PyObject *self, PyObject *args)
 {
-    PyTypeObject *value;
+    PyTypeObject *value, *setup;
     PyObject *events, *errors;
 
     if (xpybModule_core != NULL)
 	Py_RETURN_NONE;
 
-    if (!PyArg_ParseTuple(args, "O!O!O!", &PyType_Type, &value,
+    if (!PyArg_ParseTuple(args, "O!O!O!O!", &PyType_Type, &value, &PyType_Type, &setup,
 			  &PyDict_Type, &events, &PyDict_Type, &errors))
 	return NULL;
 
     if (!PyType_IsSubtype(value, &xpybExt_type)) {
-	PyErr_SetString(xpybExcept_base, "Type not derived from xcb.Extension.");
+	PyErr_SetString(xpybExcept_base, "Extension type not derived from xcb.Extension.");
+	return NULL;
+    }
+    if (!PyType_IsSubtype(setup, &xpybStruct_type)) {
+	PyErr_SetString(xpybExcept_base, "Setup type not derived from xcb.Struct.");
 	return NULL;
     }
 
     Py_INCREF(xpybModule_core = value);
     Py_INCREF(xpybModule_core_events = events);
     Py_INCREF(xpybModule_core_errors = errors);
+    Py_INCREF(xpybModule_setup = setup);
     Py_RETURN_NONE;
 }
 
@@ -146,7 +153,7 @@ xpyb_add_ext(PyObject *self, PyObject *args)
 	return NULL;
 
     if (!PyType_IsSubtype(value, &xpybExt_type)) {
-	PyErr_SetString(xpybExcept_base, "Type not derived from xcb.Extension.");
+	PyErr_SetString(xpybExcept_base, "Extension type not derived from xcb.Extension.");
 	return NULL;
     }
 

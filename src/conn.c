@@ -160,6 +160,7 @@ xpybConn_dealloc(xpybConn *self)
     int i;
 
     Py_CLEAR(self->core);
+    Py_CLEAR(self->setup);
     Py_CLEAR(self->extcache);
 
     if (self->conn)
@@ -276,10 +277,24 @@ xpybConn_prefetch_maximum_request_length(xpybConn *self, PyObject *args)
 static PyObject *
 xpybConn_get_setup(xpybConn *self, PyObject *args)
 {
+    const xcb_setup_t *s;
+    PyObject *shim, *type;
+
     if (xpybConn_invalid(self))
 	return NULL;
 
-    return NULL; /* XXX */
+    if (self->setup == NULL) {
+	s = xcb_get_setup(self->conn);
+	shim = PyBuffer_FromMemory((void *)s, 8 + s->length * 4);
+	if (shim == NULL)
+	    return NULL;
+	type = (PyObject *)xpybModule_setup;
+	self->setup = PyObject_CallFunctionObjArgs(type, shim, Py_False, NULL);
+	Py_DECREF(shim);
+    }
+
+    Py_XINCREF(self->setup);
+    return self->setup;
 }
 
 static PyObject *
