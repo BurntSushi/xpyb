@@ -4,7 +4,8 @@
 #include "protobj.h"
 
 typedef struct {
-    xpybProtobj base;
+    PyObject_HEAD
+    PyObject *buf;
     PyObject *list;
 } xpybList;
 

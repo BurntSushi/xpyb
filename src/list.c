@@ -42,6 +42,12 @@ xpybList_build(PyObject *str, Py_ssize_t size, const char *data)
  * Infrastructure
  */
 
+static PyObject *
+xpybList_new(PyTypeObject *self, PyObject *args, PyObject *kw)
+{
+    return PyType_GenericNew(self, args, kw);
+}
+
 static int
 xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 {
@@ -96,11 +102,10 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 	    return -1;
     }
 
-    obj = PyBuffer_FromObject(parent, offset, cur);
-    if (obj == NULL)
+    self->buf = PyBuffer_FromObject(parent, offset, cur - offset);
+    if (self->buf == NULL)
 	return -1;
 
-    ((xpybProtobj *)self)->buf = obj;
     return 0;
 }
 
@@ -108,7 +113,68 @@ static void
 xpybList_dealloc(xpybList *self)
 {
     Py_CLEAR(self->list);
+    Py_CLEAR(self->buf);
     xpybList_type.tp_base->tp_dealloc((PyObject *)self);
+}
+
+static Py_ssize_t
+xpybList_length(xpybList *self)
+{
+    return PyList_Type.tp_as_sequence->sq_length(self->list);
+}
+
+static PyObject *
+xpybList_concat(xpybList *self, PyObject *arg)
+{
+    return PyList_Type.tp_as_sequence->sq_concat(self->list, arg);
+}
+
+static PyObject *
+xpybList_repeat(xpybList *self, Py_ssize_t arg)
+{
+    return PyList_Type.tp_as_sequence->sq_repeat(self->list, arg);
+}
+
+static PyObject *
+xpybList_item(xpybList *self, Py_ssize_t arg)
+{
+    return PyList_Type.tp_as_sequence->sq_item(self->list, arg);
+}
+
+static PyObject *
+xpybList_slice(xpybList *self, Py_ssize_t arg1, Py_ssize_t arg2)
+{
+    return PyList_Type.tp_as_sequence->sq_slice(self->list, arg1, arg2);
+}
+
+static int
+xpybList_ass_item(xpybList *self, Py_ssize_t arg1, PyObject *arg2)
+{
+    return PyList_Type.tp_as_sequence->sq_ass_item(self->list, arg1, arg2);
+}
+
+static int
+xpybList_ass_slice(xpybList *self, Py_ssize_t arg1, Py_ssize_t arg2, PyObject *arg3)
+{
+    return PyList_Type.tp_as_sequence->sq_ass_slice(self->list, arg1, arg2, arg3);
+}
+
+static int
+xpybList_contains(xpybList *self, PyObject *arg)
+{
+    return PyList_Type.tp_as_sequence->sq_contains(self->list, arg);
+}
+
+static PyObject *
+xpybList_inplace_concat(xpybList *self, PyObject *arg)
+{
+    return PyList_Type.tp_as_sequence->sq_inplace_concat(self->list, arg);
+}
+
+static PyObject *
+xpybList_inplace_repeat(xpybList *self, Py_ssize_t arg)
+{
+    return PyList_Type.tp_as_sequence->sq_inplace_repeat(self->list, arg);
 }
 
 
@@ -118,18 +184,54 @@ xpybList_dealloc(xpybList *self)
 
 
 /*
+ * Methods
+ */
+
+static PyObject *
+xpybList_buf(xpybList *self, PyObject *args)
+{
+    Py_INCREF(self->buf);
+    return self->buf;
+}
+
+static PyMethodDef xpybList_methods[] = {
+    { "buf",
+      (PyCFunction)xpybList_buf,
+      METH_NOARGS,
+      "Return the list's underlying buffer." },
+
+    { NULL } /* terminator */
+};
+
+
+/*
  * Definition
  */
+
+static PySequenceMethods xpybList_seqops = {
+    .sq_length = (lenfunc)xpybList_length,
+    .sq_concat = (binaryfunc)xpybList_concat,
+    .sq_repeat = (ssizeargfunc)xpybList_repeat,
+    .sq_item = (ssizeargfunc)xpybList_item,
+    .sq_slice = (ssizessizeargfunc)xpybList_slice,
+    .sq_ass_item = (ssizeobjargproc)xpybList_ass_item,
+    .sq_ass_slice = (ssizessizeobjargproc)xpybList_ass_slice,
+    .sq_contains = (objobjproc)xpybList_contains,
+    .sq_inplace_concat = (binaryfunc)xpybList_inplace_concat,
+    .sq_inplace_repeat = (ssizeargfunc)xpybList_inplace_repeat
+};
 
 PyTypeObject xpybList_type = {
     PyObject_HEAD_INIT(NULL)
     .tp_name = "xcb.List",
     .tp_basicsize = sizeof(xpybList),
+    .tp_new = xpybList_new,
     .tp_init = (initproc)xpybList_init,
     .tp_dealloc = (destructor)xpybList_dealloc,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic list object",
-    .tp_base = &xpybProtobj_type,
+    .tp_methods = xpybList_methods,
+    .tp_as_sequence = &xpybList_seqops
 };
 
 
