@@ -57,6 +57,67 @@ xpybProtobj_charbuf(xpybProtobj *self, Py_ssize_t s, char **p)
     return PyBuffer_Type.tp_as_buffer->bf_getcharbuffer(self->buf, s, p);
 }
 
+static Py_ssize_t
+xpybProtobj_length(xpybProtobj *self)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_length(self->buf);
+}
+
+static PyObject *
+xpybProtobj_concat(xpybProtobj *self, PyObject *arg)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_concat(self->buf, arg);
+}
+
+static PyObject *
+xpybProtobj_repeat(xpybProtobj *self, Py_ssize_t arg)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_repeat(self->buf, arg);
+}
+
+static PyObject *
+xpybProtobj_item(xpybProtobj *self, Py_ssize_t arg)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_item(self->buf, arg);
+}
+
+static PyObject *
+xpybProtobj_slice(xpybProtobj *self, Py_ssize_t arg1, Py_ssize_t arg2)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_slice(self->buf, arg1, arg2);
+}
+
+static int
+xpybProtobj_ass_item(xpybProtobj *self, Py_ssize_t arg1, PyObject *arg2)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_ass_item(self->buf, arg1, arg2);
+}
+
+static int
+xpybProtobj_ass_slice(xpybProtobj *self, Py_ssize_t arg1, Py_ssize_t arg2, PyObject *arg3)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_ass_slice(self->buf, arg1, arg2, arg3);
+}
+
+static int
+xpybProtobj_contains(xpybProtobj *self, PyObject *arg)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_contains(self->buf, arg);
+}
+
+static PyObject *
+xpybProtobj_inplace_concat(xpybProtobj *self, PyObject *arg)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_inplace_concat(self->buf, arg);
+}
+
+static PyObject *
+xpybProtobj_inplace_repeat(xpybProtobj *self, Py_ssize_t arg)
+{
+    return PyBuffer_Type.tp_as_sequence->sq_inplace_repeat(self->buf, arg);
+}
+
+
 /*
  * Members
  */
@@ -77,6 +138,19 @@ static PyBufferProcs xpybProtobj_bufops = {
     .bf_getcharbuffer = (charbufferproc)xpybProtobj_charbuf
 };
 
+static PySequenceMethods xpybProtobj_seqops = {
+    .sq_length = (lenfunc)xpybProtobj_length,
+    .sq_concat = (binaryfunc)xpybProtobj_concat,
+    .sq_repeat = (ssizeargfunc)xpybProtobj_repeat,
+    .sq_item = (ssizeargfunc)xpybProtobj_item,
+    .sq_slice = (ssizessizeargfunc)xpybProtobj_slice,
+    .sq_ass_item = (ssizeobjargproc)xpybProtobj_ass_item,
+    .sq_ass_slice = (ssizessizeobjargproc)xpybProtobj_ass_slice,
+    .sq_contains = (objobjproc)xpybProtobj_contains,
+    .sq_inplace_concat = (binaryfunc)xpybProtobj_inplace_concat,
+    .sq_inplace_repeat = (ssizeargfunc)xpybProtobj_inplace_repeat
+};
+
 PyTypeObject xpybProtobj_type = {
     PyObject_HEAD_INIT(NULL)
     .tp_name = "xcb.Protobj",
@@ -86,7 +160,8 @@ PyTypeObject xpybProtobj_type = {
     .tp_dealloc = (destructor)xpybProtobj_dealloc,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB generic X protocol object",
-    .tp_as_buffer = &xpybProtobj_bufops
+    .tp_as_buffer = &xpybProtobj_bufops,
+    .tp_as_sequence = &xpybProtobj_seqops
 };
 
 
