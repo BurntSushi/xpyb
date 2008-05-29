@@ -148,7 +148,7 @@ def py_open(self):
     if _ns.is_ext:
         _py('xcb._add_ext(key, %sExtension, _events, _errors)', _ns.header)
     else:
-        _py('xcb._add_core(%sExtension, _events, _errors)', _ns.header)
+        _py('xcb._add_core(%sExtension, Setup, _events, _errors)', _ns.header)
     
 
 def py_close(self):
@@ -284,7 +284,15 @@ def py_simple(self, name):
     '''
     _py_type_setup(self, name, '')
 
+def _py_type_alignsize(field):
+    if field.type.is_list:
+        return field.type.member.size if field.type.member.fixed_size() else 4
+    if field.type.is_container:
+        return field.type.size if field.type.fixed_size() else 4
+    return field.type.size
+        
 def _py_complex(self, name):
+    need_alignment = False
     _py('        count = 0')
 
     for field in self.fields:
@@ -303,10 +311,14 @@ def _py_complex(self, name):
             _py('        (%s,) = unpack_from(\'%s\', self, count)', list, format)
         if size > 0:
             _py('        count += %d', size)
-                
+
+        if need_alignment:
+            _py('        count += xcb.type_pad(%d, count)', _py_type_alignsize(field))
+        need_alignment = True
+
         if field.type.is_list:
             _py('        self.%s = xcb.List(self, count, %s, %s, %d)', _n(field.field_name), _py_get_expr(field.type.expr), field.py_listtype, field.py_listsize)
-            _py('        count += len(self.%s)', _n(field.field_name))
+            _py('        count += len(self.%s.buf())', _n(field.field_name))
         elif field.type.is_container and field.type.fixed_size():
             _py('        self.%s = %s(self, count, %s)', _n(field.field_name), field.py_type, field.type.size)
             _py('        count += %s', field.type.size)
@@ -316,6 +328,8 @@ def _py_complex(self, name):
 
     (format, size, list) = _py_flush_format()
     if len(list) > 0:
+        if need_alignment:
+            _py('        count += xcb.type_pad(4, count)')
         _py('        (%s,) = unpack_from(\'%s\', self, count)', list, format)
         _py('        count += %d', size)
 
@@ -363,14 +377,14 @@ def py_union(self, name):
     _py('        count = 0')
 
     for field in self.fields:
-        if field.type.is_list:
+        if field.type.is_simple:
+            _py('        self.%s = unpack_from(\'%s\', self)', _n(field.field_name), field.type.py_format_str)
+            _py('        count = max(count, %s)', field.type.size)
+        elif field.type.is_list:
             _py('        self.%s = xcb.List(self, 0, %s, %s, %s)', _n(field.field_name), _py_get_expr(field.type.expr), field.py_listtype, field.py_listsize)
-            _py('        count = max(count, len(self.%s))', _n(field.field_name))
+            _py('        count = max(count, len(self.%s.buf()))', _n(field.field_name))
         elif field.type.is_container and field.type.fixed_size():
             _py('        self.%s = %s(self, 0, %s)', _n(field.field_name), field.py_type, field.type.size)
-            _py('        count = max(count, %s)', field.type.size)
-        elif field.type.is_simple:
-            _py('        self.%s = unpack_from(\'%s\', self)', _n(field.field_name), field.type.py_format_str)
             _py('        count = max(count, %s)', field.type.size)
         else:
             _py('        self.%s = %s(self, 0)', _n(field.field_name), field.py_type)
