@@ -482,7 +482,7 @@ def _py_request_helper(self, name, void, regular):
             _py('        for elt in xcb.Iterator(%s, %d, \'%s\', False):', _n(field.field_name), field.type.py_format_len, _n(field.field_name))
             _py('            buf.write(pack(\'%s\', *elt))', field.type.py_format_str)
         elif field.type.is_list and field.type.member.is_simple:
-            _py('        buf.write(array(\'%s\', %s))', field.type.member.py_format_str, _n(field.field_name))
+            _py('        buf.write(str(buffer(array(\'%s\', %s))))', field.type.member.py_format_str, _n(field.field_name))
         else:
             _py('        for elt in xcb.Iterator(%s, %d, \'%s\', True):', _n(field.field_name), field.type.member.py_format_len, _n(field.field_name))
             _py('            buf.write(pack(\'%s\', *elt))', field.type.member.py_format_str)
