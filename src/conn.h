@@ -17,8 +17,8 @@ typedef struct {
 extern PyTypeObject xpybConn_type;
 
 int xpybConn_invalid(xpybConn *self);
+xpybConn *xpybConn_create(PyObject *core_type);
 int xpybConn_setup(xpybConn *self);
-PyObject *xpybConn_make_core(xpybConn *self);
 
 int xpybConn_modinit(PyObject *m);
 

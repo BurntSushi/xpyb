@@ -25,54 +25,76 @@ xpybConn_invalid(xpybConn *self)
     return 0;
 }
 
-PyObject *
-xpybConn_make_core(xpybConn *self)
+xpybConn *
+xpybConn_create(PyObject *core_type)
 {
-    /* Make sure core was set. */
-    if (xpybModule_core == NULL) {
-	PyErr_SetString(xpybExcept_base, "No core protocol object has been set.  Did you import xcb.xproto?");
-	return NULL;
-    }
+    xpybConn *self;
 
-    /* Call the object to get a new xcb.Extension object. */
-    return PyObject_CallFunctionObjArgs((PyObject *)xpybModule_core, self, NULL);
+    self = PyObject_New(xpybConn, &xpybConn_type);
+    if (self == NULL)
+	return NULL;
+
+    self->core = PyObject_CallFunctionObjArgs(core_type, self, NULL);
+    if (self->core == NULL)
+	goto err1;
+
+    self->extcache = PyDict_New();
+    if (self->extcache == NULL)
+	goto err2;
+
+    self->setup = NULL;
+    self->events = NULL;
+    self->events_len = 0;
+    self->errors = NULL;
+    self->errors_len = 0;
+    return self;
+
+err2:
+    Py_DECREF(self->core);
+err1:
+    Py_DECREF(self);
+    return NULL;
 }
 
-static PyObject *
-xpybConn_make_ext(xpybConn *self, PyObject *key)
+static xpybExt *
+xpybConn_load_ext(xpybConn *self, PyObject *key)
 {
-    PyObject *result;
+    PyObject *type;
     xpybExt *ext;
     const xcb_query_extension_reply_t *reply;
 
-    /* Look up the callable object in the global dictionary. */
-    result = PyDict_GetItem(xpybModule_extdict, key);
-    if (result == NULL) {
-	PyErr_SetString(xpybExcept_ext, "No extension found for that key.");
-	return NULL;
+    ext = (xpybExt *)PyDict_GetItem(self->extcache, key);
+    Py_XINCREF(ext);
+
+    if (ext == NULL) {
+	/* Look up the extension type in the global dictionary. */
+	type = PyDict_GetItem(xpybModule_extdict, key);
+	if (type == NULL) {
+	    PyErr_SetString(xpybExcept_ext, "No extension found for that key.");
+	    return NULL;
+	}
+
+	/* Call the type object to get a new xcb.Extension object. */
+	ext = (xpybExt *)PyObject_CallFunctionObjArgs(type, self, key, NULL);
+	if (ext == NULL)
+	    return NULL;
+
+	/* Get the opcode and base numbers. */
+	reply = xcb_get_extension_data(self->conn, &((xpybExtkey *)key)->key);
+	ext->present = reply->present;
+	ext->major_opcode = reply->major_opcode;
+	ext->first_event = reply->first_event;
+	ext->first_error = reply->first_error;
+
+	if (PyDict_SetItem(self->extcache, key, (PyObject *)ext) < 0)
+	    return NULL;
     }
 
-    /* Call the object to get a new xcb.Extension object. */
-    ext = (xpybExt *)PyObject_CallFunctionObjArgs(result, self, key, NULL);
-    if (ext == NULL)
-	return NULL;
-
-    /* Get the opcode and base numbers. */
-    reply = xcb_get_extension_data(self->conn, &((xpybExtkey *)key)->key);
-    if (!reply->present) {
-	PyErr_SetString(xpybExcept_ext, "Extension not present on server.");
-	Py_DECREF(ext);
-	return NULL;
-    }
-    ext->major_opcode = reply->major_opcode;
-    ext->first_event = reply->first_event;
-    ext->first_error = reply->first_error;
-
-    return (PyObject *)ext;
+    return ext;
 }
 
 static int
-xpybConn_setup_ext(xpybConn *self, xpybExt *ext, PyObject *events, PyObject *errors)
+xpybConn_setup_helper(xpybConn *self, xpybExt *ext, PyObject *events, PyObject *errors)
 {
     Py_ssize_t j = 0;
     unsigned char opcode, newlen;
@@ -114,28 +136,29 @@ int
 xpybConn_setup(xpybConn *self)
 {
     PyObject *key, *events, *errors;
-    xpybExt *ext = NULL;
+    xpybExt *ext;
     Py_ssize_t i = 0;
     int rc = -1;
 
-    ext = (xpybExt *)xpybModule_core;
+    ext = (xpybExt *)self->core;
     events = xpybModule_core_events;
     errors = xpybModule_core_errors;
-    if (xpybConn_setup_ext(self, ext, events, errors) < 0)
+    if (xpybConn_setup_helper(self, ext, events, errors) < 0)
 	return -1;
 
+    ext = NULL;
     while (PyDict_Next(xpybModule_ext_events, &i, &key, &events)) {
 	errors = PyDict_GetItem(xpybModule_ext_errors, key);
 	if (errors == NULL)
 	    goto out;
 
 	Py_XDECREF(ext);
-	ext = (xpybExt *)PyObject_CallFunctionObjArgs((PyObject *)self, key, NULL);
+	ext = xpybConn_load_ext(self, key);
 	if (ext == NULL)
 	    goto out;
-
-	if (xpybConn_setup_ext(self, ext, events, errors) < 0)
-	    goto out;
+	if (ext->present)
+	    if (xpybConn_setup_helper(self, ext, events, errors) < 0)
+		goto out;
     }
 
     rc = 0;
@@ -177,23 +200,11 @@ xpybConn_dealloc(xpybConn *self)
 }
 
 static PyObject *
-xpybConn_getattro(xpybConn *self, PyObject *obj)
-{
-    PyObject *result, *core;
-
-    result = PyObject_GenericGetAttr((PyObject *)self, obj);
-    if (result != NULL || xpybModule_core == NULL)
-	return result;
-
-    core = self->core;
-    return core->ob_type->tp_getattro(core, obj);
-}
-
-static PyObject *
 xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
 {
     static char *kwlist[] = { "key", NULL };
-    PyObject *ext, *key;
+    PyObject *key;
+    xpybExt *ext;
 
     /* Parse the extension key argument and check connection. */
     if (!PyArg_ParseTupleAndKeywords(args, kw, "O!", kwlist, &xpybExtkey_type, &key))
@@ -202,17 +213,14 @@ xpybConn_call(xpybConn *self, PyObject *args, PyObject *kw)
 	return NULL;
 
     /* Check our dictionary of cached values */
-    ext = PyDict_GetItem(self->extcache, key);
-    if (ext == NULL) {
-	ext = xpybConn_make_ext(self, key);
-	if (ext == NULL)
-	    return NULL;
-	if (PyDict_SetItem(self->extcache, key, ext) < 0)
-	    return NULL;
+    ext = xpybConn_load_ext(self, key);
+    if (!ext->present) {
+	PyErr_SetString(xpybExcept_ext, "Extension not present on server.");
+	Py_DECREF(ext);
+	return NULL;
     }
 
-    Py_INCREF(ext);
-    return ext;
+    return (PyObject *)ext;
 }
 
 
@@ -226,6 +234,12 @@ static PyMemberDef xpybConn_members[] = {
       offsetof(xpybConn, pref_screen),
       READONLY,
       "Preferred display screen" },
+
+    { "core",
+      T_OBJECT,
+      offsetof(xpybConn, core),
+      READONLY,
+      "Core protocol object" },
 
     { NULL } /* terminator */
 };
@@ -448,8 +462,7 @@ PyTypeObject xpybConn_type = {
     .tp_doc = "XCB connection object",
     .tp_methods = xpybConn_methods,
     .tp_members = xpybConn_members,
-    .tp_call = (ternaryfunc)xpybConn_call,
-    .tp_getattro = (getattrofunc)xpybConn_getattro
+    .tp_call = (ternaryfunc)xpybConn_call
 };
 
 

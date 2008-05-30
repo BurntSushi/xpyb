@@ -68,16 +68,20 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
     xpybConn *conn;
     int authlen, fd = -1;
 
-    /* Parse arguments and allocate new objects */
+    /* Make sure core was set. */
+    if (xpybModule_core == NULL) {
+	PyErr_SetString(xpybExcept_base, "No core protocol object has been set.  Did you import xcb.xproto?");
+	return NULL;
+    }
+
+    /* Parse arguments and allocate new connection object */
     if (!PyArg_ParseTupleAndKeywords(args, kw, "|ziz#", kwlist, &displayname,
 				     &fd, &authstr, &authlen))
 	return NULL;
-    if ((conn = PyObject_New(xpybConn, &xpybConn_type)) == NULL)
+
+    conn = xpybConn_create((PyObject *)xpybModule_core);
+    if (conn == NULL)
 	return NULL;
-    if ((conn->core = xpybConn_make_core(conn)) == NULL)
-	goto err;
-    if ((conn->extcache = PyDict_New()) == NULL)
-	goto err;
 
     /* Set up authorization */
     if (authstr != NULL) {
@@ -97,13 +101,7 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
 	goto err;
     }
 
-    /* Initialize all other fields */
-    conn->setup = NULL;
-    conn->events = NULL;
-    conn->events_len = 0;
-    conn->errors = NULL;
-    conn->errors_len = 0;
-
+    /* Load extensions */
     if (xpybConn_setup(conn) < 0)
 	goto err;
 
