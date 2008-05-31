@@ -36,11 +36,15 @@ xpybConn_create(PyObject *core_type)
 
     self->core = PyObject_CallFunctionObjArgs(core_type, self, NULL);
     if (self->core == NULL)
-	goto err1;
+	goto err;
+
+    self->dict = PyDict_New();
+    if (self->dict == NULL)
+	goto err;
 
     self->extcache = PyDict_New();
     if (self->extcache == NULL)
-	goto err2;
+	goto err;
 
     self->setup = NULL;
     self->events = NULL;
@@ -49,9 +53,7 @@ xpybConn_create(PyObject *core_type)
     self->errors_len = 0;
     return self;
 
-err2:
-    Py_DECREF(self->core);
-err1:
+err:
     Py_DECREF(self);
     return NULL;
 }
@@ -182,6 +184,7 @@ xpybConn_dealloc(xpybConn *self)
 {
     int i;
 
+    Py_CLEAR(self->dict);
     Py_CLEAR(self->core);
     Py_CLEAR(self->setup);
     Py_CLEAR(self->extcache);
@@ -197,6 +200,49 @@ xpybConn_dealloc(xpybConn *self)
     free(self->events);
     free(self->errors);
     self->ob_type->tp_free((PyObject *)self);
+}
+
+static PyObject *
+xpybConn_getattro(xpybConn *self, PyObject *obj)
+{
+    const char *name = PyString_AS_STRING(obj);
+    PyMethodDef *mptr = xpybConn_type.tp_methods;
+    PyMemberDef *sptr = xpybConn_type.tp_members;
+    PyObject *result;
+
+    while (mptr && mptr->ml_name)
+	if (strcmp(name, (mptr++)->ml_name) == 0)
+	    goto out2;
+    while (sptr && sptr->name)
+	if (strcmp(name, (sptr++)->name) == 0)
+	    goto out2;
+	
+    Py_XINCREF(result = PyDict_GetItem(self->dict, obj));
+    if (result != NULL || PyErr_Occurred())
+	return result;
+
+    return xpybConn_type.tp_base->tp_getattro((PyObject *)self, obj);
+out2:
+    return PyObject_GenericGetAttr((PyObject *)self, obj);
+}
+
+static int
+xpybConn_setattro(xpybConn *self, PyObject *obj, PyObject *val)
+{
+    const char *name = PyString_AS_STRING(obj);
+    PyMethodDef *mptr = xpybConn_type.tp_methods;
+    PyMemberDef *sptr = xpybConn_type.tp_members;
+
+    while (mptr && mptr->ml_name)
+	if (strcmp(name, (mptr++)->ml_name) == 0)
+	    goto out2;
+    while (sptr && sptr->name)
+	if (strcmp(name, (sptr++)->name) == 0)
+	    goto out2;
+
+    return val ? PyDict_SetItem(self->dict, obj, val) : PyDict_DelItem(self->dict, obj);
+out2:
+    return PyObject_GenericSetAttr((PyObject *)self, obj, val);
 }
 
 static PyObject *
@@ -240,6 +286,12 @@ static PyMemberDef xpybConn_members[] = {
       offsetof(xpybConn, core),
       READONLY,
       "Core protocol object" },
+
+    { "__dict__",
+      T_OBJECT,
+      offsetof(xpybConn, dict),
+      READONLY,
+      "Instance dictionary object" },
 
     { NULL } /* terminator */
 };
@@ -462,7 +514,9 @@ PyTypeObject xpybConn_type = {
     .tp_doc = "XCB connection object",
     .tp_methods = xpybConn_methods,
     .tp_members = xpybConn_members,
-    .tp_call = (ternaryfunc)xpybConn_call
+    .tp_call = (ternaryfunc)xpybConn_call,
+    .tp_getattro = (getattrofunc)xpybConn_getattro,
+    .tp_setattro = (setattrofunc)xpybConn_setattro
 };
 
 
