@@ -1,7 +1,7 @@
 About xpyb
 ============
 
-xpyb provides a Python binding to libxcb.  
+xpyb provides a Python binding to the X Window System protocol via libxcb.
 
 
 Please report any issues you find to the freedesktop.org bug tracker,
