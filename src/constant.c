@@ -9,9 +9,9 @@ int xpybConstant_modinit(PyObject *m)
     PyModule_AddIntConstant(m, "X_PROTOCOL_REVISION", X_PROTOCOL_REVISION);
     PyModule_AddIntConstant(m, "X_TCP_PORT", X_TCP_PORT);
     PyModule_AddIntConstant(m, "NONE", XCB_NONE);
-    PyModule_AddIntConstant(m, "COPY_FROM_PARENT", XCB_COPY_FROM_PARENT);
-    PyModule_AddIntConstant(m, "CURRENT_TIME", XCB_CURRENT_TIME);
-    PyModule_AddIntConstant(m, "NO_SYMBOL", XCB_NO_SYMBOL);
+    PyModule_AddIntConstant(m, "CopyFromParent", XCB_COPY_FROM_PARENT);
+    PyModule_AddIntConstant(m, "CurrentTime", XCB_CURRENT_TIME);
+    PyModule_AddIntConstant(m, "NoSymbol", XCB_NO_SYMBOL);
 
     /* Pre-defined atoms */
     PyModule_AddIntConstant(m, "XA_PRIMARY", XA_PRIMARY);
