@@ -264,19 +264,7 @@ initxcb(void)
 	return;
 
     /* Add integer constants */
-    if (PyModule_AddIntConstant(m, "X_PROTOCOL", X_PROTOCOL) < 0)
-	return;
-    if (PyModule_AddIntConstant(m, "X_PROTOCOL_REVISION", X_PROTOCOL_REVISION) < 0)
-	return;
-    if (PyModule_AddIntConstant(m, "X_TCP_PORT", X_TCP_PORT) < 0)
-	return;
-    if (PyModule_AddIntConstant(m, "NONE", XCB_NONE) < 0)
-	return;
-    if (PyModule_AddIntConstant(m, "COPY_FROM_PARENT", XCB_COPY_FROM_PARENT) < 0)
-	return;
-    if (PyModule_AddIntConstant(m, "CURRENT_TIME", XCB_CURRENT_TIME) < 0)
-	return;
-    if (PyModule_AddIntConstant(m, "NO_SYMBOL", XCB_NO_SYMBOL) < 0)
+    if (xpybConstant_modinit(m) < 0)
 	return;
 
     /* Set up all the types */
