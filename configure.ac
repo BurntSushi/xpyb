@@ -53,8 +53,6 @@ else
 fi
 AC_SUBST(CWARNFLAGS)
 
-GCC_CHECK_VISIBILITY()
-
 AC_ARG_ENABLE(composite, AS_HELP_STRING([--enable-composite], [Build XCB Composite Extension (default: yes)]), [BUILD_COMPOSITE=$enableval], [BUILD_COMPOSITE=yes])
 AM_CONDITIONAL(BUILD_COMPOSITE, [test "x$BUILD_COMPOSITE" = xyes])
 AC_ARG_ENABLE(damage, AS_HELP_STRING([--enable-damage], [Build XCB Damage Extension (default: yes)]), [BUILD_DAMAGE=$enableval], [BUILD_DAMAGE=yes])
