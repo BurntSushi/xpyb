@@ -100,6 +100,7 @@ AM_CONDITIONAL(BUILD_XVMC, [test "x$BUILD_XVMC" = xyes])
 
 
 AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([xpyb.pc])
 
 AC_OUTPUT
 
