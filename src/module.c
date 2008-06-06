@@ -1,5 +1,6 @@
 #include "module.h"
 #include "except.h"
+#include "constant.h"
 #include "cookie.h"
 #include "protobj.h"
 #include "response.h"
