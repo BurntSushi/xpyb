@@ -92,10 +92,12 @@ xpyb_connect(PyObject *self, PyObject *args, PyObject *kw)
     }
 
     /* Connect to display */
-    if (fd < 0)
+    if (fd >= 0)
+	conn->conn = xcb_connect_to_fd(fd, authptr);
+    else if (authptr)
 	conn->conn = xcb_connect_to_display_with_auth_info(displayname, authptr, &conn->pref_screen);
     else
-	conn->conn = xcb_connect_to_fd(fd, authptr);
+	conn->conn = xcb_connect(displayname, &conn->pref_screen);
 
     if (xcb_connection_has_error(conn->conn)) {
 	PyErr_SetString(xpybExcept_conn, "Failed to connect to X server.");
