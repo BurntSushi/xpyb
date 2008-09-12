@@ -173,7 +173,7 @@ xpyb_resize_obj(PyObject *self, PyObject *args)
     Py_ssize_t size;
     PyObject *buf;
 
-    if (!PyArg_ParseTuple(args, "O!i", &xpybProtobj_type, &obj, &size))
+    if (!PyArg_ParseTuple(args, "O!n", &xpybProtobj_type, &obj, &size))
 	return NULL;
 
     buf = PyBuffer_FromObject(obj->buf, 0, size);

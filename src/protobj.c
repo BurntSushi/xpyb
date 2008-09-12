@@ -20,7 +20,7 @@ xpybProtobj_init(xpybProtobj *self, PyObject *args, PyObject *kw)
     Py_ssize_t offset = 0, size = Py_END_OF_BUFFER;
     PyObject *parent;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "O|ii", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "O|nn", kwlist,
 				     &parent, &offset, &size))
 	return -1;
 

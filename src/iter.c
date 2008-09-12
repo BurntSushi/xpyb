@@ -74,7 +74,7 @@ xpybIter_init(xpybIter *self, PyObject *args, PyObject *kw)
     PyObject *name, *list, *bool;
     Py_ssize_t groupsize;
 
-    if (!PyArg_ParseTuple(args, "OiSO", &list, &groupsize, &name, &bool))
+    if (!PyArg_ParseTuple(args, "OnSO", &list, &groupsize, &name, &bool))
 	return -1;
     
     Py_INCREF(self->name = name);

@@ -56,7 +56,7 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
     PyObject *parent, *type, *obj, *arglist;
     const char *data;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "OiiO|i", kwlist, &parent,
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "OnnO|n", kwlist, &parent,
 				     &offset, &length, &type, &size))
 	return -1;
 
@@ -66,7 +66,7 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 
     if (PyObject_AsReadBuffer(parent, (const void **)&data, &datalen) < 0)
 	return -1;
-    if (length * size - offset > datalen) {
+    if (length * size + offset > datalen) {
 	PyErr_SetString(xpybExcept_base, "Protocol object buffer too short.");
 	return -1;
     }
@@ -80,14 +80,14 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 		return -1;
 	    cur += size;
 	} else if (size > 0) {
-	    arglist = Py_BuildValue("(Oii)", parent, cur, size);
+	    arglist = Py_BuildValue("(Onn)", parent, cur, size);
 	    obj = PyEval_CallObject(type, arglist);
 	    Py_DECREF(arglist);
 	    if (obj == NULL)
 		return -1;
 	    cur += size;
 	} else {
-	    arglist = Py_BuildValue("(Oi)", parent, cur);
+	    arglist = Py_BuildValue("(On)", parent, cur);
 	    obj = PyEval_CallObject(type, arglist);
 	    Py_DECREF(arglist);
 	    if (obj == NULL)
