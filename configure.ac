@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.57)
 AC_INIT([xpyb],
-        0.9,
+        1.0,
         [xcb@lists.freedesktop.org])
 AC_CONFIG_SRCDIR([xpyb.pc.in])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
