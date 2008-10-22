@@ -66,8 +66,9 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 
     if (PyObject_AsReadBuffer(parent, (const void **)&data, &datalen) < 0)
 	return -1;
-    if (length * size + offset > datalen) {
-	PyErr_SetString(xpybExcept_base, "Protocol object buffer too short.");
+    if (size > 0 && length * size + offset > datalen) {
+	PyErr_Format(xpybExcept_base, "Protocol object buffer too short "
+		     "(expected %zd got %zd).", length * size + offset, datalen);
 	return -1;
     }
 
