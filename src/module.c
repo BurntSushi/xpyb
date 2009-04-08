@@ -115,6 +115,46 @@ err:
 }
 
 static PyObject *
+xpyb_wrap(PyObject *self, PyObject *args)
+{
+    PyObject *obj;
+    void *raw;
+    xpybConn *conn;
+
+    /* Make sure core was set. */
+    if (xpybModule_core == NULL) {
+	PyErr_SetString(xpybExcept_base, "No core protocol object has been set.  Did you import xcb.xproto?");
+	return NULL;
+    }
+
+    /* Parse arguments and allocate new connection object */
+    if (!PyArg_ParseTuple(args, "O", &obj))
+	return NULL;
+
+    conn = xpybConn_create((PyObject *)xpybModule_core);
+    if (conn == NULL)
+	return NULL;
+
+    /* Get our pointer */
+    raw = PyLong_AsVoidPtr(obj);
+    if (!raw || PyErr_Occurred()) {
+	PyErr_SetString(xpybExcept_base, "Bad pointer value passed to wrap().");
+	goto err;
+    }
+
+    conn->conn = raw;
+    conn->wrapped = 1;
+
+    /* Load extensions */
+    if (xpybConn_setup(conn) < 0)
+	goto err;
+
+    return (PyObject *)conn;
+err:
+    Py_DECREF(conn);
+    return NULL;
+}
+static PyObject *
 xpyb_add_core(PyObject *self, PyObject *args)
 {
     PyTypeObject *value, *setup;
@@ -216,6 +256,11 @@ static PyMethodDef XCBMethods[] = {
       (PyCFunction)xpyb_connect,
       METH_VARARGS | METH_KEYWORDS,
       "Connects to the X server." },
+
+    { "wrap",
+      (PyCFunction)xpyb_wrap,
+      METH_VARARGS,
+      "Wraps an existing XCB connection pointer." },
 
     { "popcount",
       (PyCFunction)xpyb_popcount,

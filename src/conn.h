@@ -4,6 +4,7 @@
 typedef struct {
     PyObject_HEAD
     xcb_connection_t *conn;
+    int wrapped;
     PyObject *dict;
     int pref_screen;
     PyObject *core;

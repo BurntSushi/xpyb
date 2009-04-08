@@ -46,6 +46,7 @@ xpybConn_create(PyObject *core_type)
     if (self->extcache == NULL)
 	goto err;
 
+    self->wrapped = 0;
     self->setup = NULL;
     self->events = NULL;
     self->events_len = 0;
@@ -189,7 +190,7 @@ xpybConn_dealloc(xpybConn *self)
     Py_CLEAR(self->setup);
     Py_CLEAR(self->extcache);
 
-    if (self->conn)
+    if (self->conn && !self->wrapped)
 	xcb_disconnect(self->conn);
 
     for (i = 0; i < self->events_len; i++)
