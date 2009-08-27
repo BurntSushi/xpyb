@@ -5,7 +5,7 @@ EXTENSION_XML = xproto.xml \
 		bigreq.xml \
 		xc_misc.xml
 
-pkgpythondir = $(pythondir)/xcb
+pkgpythondir = $(pyexecdir)/xcb
 
 pkgpython_LTLIBRARIES = xcb.la
 
