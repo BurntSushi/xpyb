@@ -257,7 +257,11 @@ def _py_get_length_field(expr):
     Otherwise, just reference the structure field directly.
     '''
     if expr.lenfield_name != None:
-        return 'self.%s' % expr.lenfield_name
+        # This would be nicer if Request had an is_request attribute...
+        if hasattr(expr.parent.parent, "opcode"):
+            return expr.lenfield_name
+        else:
+            return 'self.%s' % expr.lenfield_name
     else:
         return str(expr.nmemb)
 
