@@ -1,3 +1,4 @@
+#include "xpyb.h"
 #include "module.h"
 #include "except.h"
 #include "constant.h"
@@ -290,6 +291,9 @@ static PyMethodDef XCBMethods[] = {
     { NULL } /* terminator */
 };
 
+static xpyb_CAPI_t CAPI = {
+    &xpybConn_type,
+};
 
 /*
  * Module init
@@ -352,4 +356,7 @@ initxcb(void)
 
     if (xpybVoid_modinit(m) < 0)
 	return;
+
+    /* Export C API for other modules */
+    PyModule_AddObject(m, "CAPI", PyCObject_FromVoidPtr(&CAPI, NULL));
 }

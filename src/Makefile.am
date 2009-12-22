@@ -21,6 +21,7 @@ xcb_la_SOURCES = conn.c constant.c cookie.c error.c event.c except.c \
 noinst_HEADERS = conn.h constant.h cookie.h error.h event.h except.h \
 		 ext.h extkey.h iter.h list.h module.h protobj.h \
 		 reply.h request.h response.h struct.h union.h void.h
+include_HEADERS = xpyb.h
 
 # FIXME: find a way to autogenerate this from the XML files.
 
