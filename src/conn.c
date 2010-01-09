@@ -25,26 +25,40 @@ xpybConn_invalid(xpybConn *self)
     return 0;
 }
 
-xpybConn *
-xpybConn_create(PyObject *core_type)
+static int
+xpyb_parse_auth(const char *authstr, int authlen, xcb_auth_info_t *auth)
 {
-    xpybConn *self;
+    int i = 0;
 
-    self = PyObject_New(xpybConn, &xpybConn_type);
-    if (self == NULL)
-	return NULL;
+    while (i < authlen && authstr[i] != ':')
+	i++;
 
+    if (i >= authlen) {
+	PyErr_SetString(xpybExcept_base, "Auth string must take the form '<name>:<data>'.");
+	return -1;
+    }
+
+    auth->name = (char *)authstr;
+    auth->namelen = i++;
+    auth->data = (char *)authstr + i;
+    auth->datalen = authlen - i;
+    return 0;
+}
+
+int
+xpybConn_init_struct(xpybConn *self, PyObject *core_type)
+{
     self->core = PyObject_CallFunctionObjArgs(core_type, self, NULL);
     if (self->core == NULL)
-	goto err;
+        return -1;
 
     self->dict = PyDict_New();
     if (self->dict == NULL)
-	goto err;
+        return -1;
 
-    self->extcache = PyDict_New();
+   self->extcache = PyDict_New();
     if (self->extcache == NULL)
-	goto err;
+        return -1;
 
     self->wrapped = 0;
     self->setup = NULL;
@@ -52,11 +66,55 @@ xpybConn_create(PyObject *core_type)
     self->events_len = 0;
     self->errors = NULL;
     self->errors_len = 0;
-    return self;
+    return 0;
+}
 
-err:
-    Py_DECREF(self);
-    return NULL;
+int
+xpybConn_init(xpybConn *self, PyObject *args, PyObject *kw)
+{
+    static char *kwlist[] = { "display", "fd", "auth", NULL };
+    const char *displayname = NULL, *authstr = NULL;
+    xcb_auth_info_t auth, *authptr = NULL;
+    int authlen, fd = -1;
+
+    /* Make sure core was set. */
+    if (xpybModule_core == NULL) {
+	PyErr_SetString(xpybExcept_base, "No core protocol object has been set.  Did you import xcb.xproto?");
+        return -1;
+    }
+
+    /* Parse arguments and allocate new connection object */
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "|ziz#", kwlist, &displayname,
+				     &fd, &authstr, &authlen))
+        return -1;
+
+    /* Set up authorization */
+    if (authstr != NULL) {
+	if (xpyb_parse_auth(authstr, authlen, &auth) < 0)
+            return -1;
+	authptr = &auth;
+    }
+
+    /* Connect to display */
+    if (fd >= 0)
+	self->conn = xcb_connect_to_fd(fd, authptr);
+    else if (authptr)
+	self->conn = xcb_connect_to_display_with_auth_info(displayname, authptr, &self->pref_screen);
+    else
+	self->conn = xcb_connect(displayname, &self->pref_screen);
+
+    if (xcb_connection_has_error(self->conn)) {
+	PyErr_SetString(xpybExcept_conn, "Failed to connect to X server.");
+        return -1;
+    }
+
+    xpybConn_init_struct(self, (PyObject *)xpybModule_core);
+
+    /* Load extensions */
+    if (xpybConn_setup(self) < 0)
+	return -1;
+
+    return 0;
 }
 
 static xpybExt *
@@ -511,7 +569,8 @@ PyTypeObject xpybConn_type = {
     .tp_basicsize = sizeof(xpybConn),
     .tp_new = xpybConn_new,
     .tp_dealloc = (destructor)xpybConn_dealloc,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_init = (initproc)xpybConn_init,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "XCB connection object",
     .tp_methods = xpybConn_methods,
     .tp_members = xpybConn_members,

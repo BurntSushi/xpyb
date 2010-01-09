@@ -11,4 +11,7 @@ int xpybConn_setup(xpybConn *self);
 
 int xpybConn_modinit(PyObject *m);
 
+int xpybConn_init_struct(xpybConn *self, PyObject *core_type);
+int xpybConn_init(xpybConn *self, PyObject *args, PyObject *kw);
+
 #endif
