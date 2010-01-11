@@ -136,7 +136,8 @@ EXTENSION_XML += xvmc.xml
 endif
 
 
-pkgpython_PYTHON = __init__.py $(EXTSOURCES)
+pkgpython_PYTHON = __init__.py
+nodist_pkgpython_PYTHON = $(EXTSOURCES)
 
 BUILT_SOURCES = $(EXTSOURCES)
 CLEANFILES = $(EXTSOURCES) $(EXTENSION_XML)
