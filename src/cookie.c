@@ -23,7 +23,7 @@ xpybCookie_new(PyTypeObject *self, PyObject *args, PyObject *kw)
 static void
 xpybCookie_dealloc(xpybCookie *self)
 {
-    Py_CLEAR(self->reply);
+    Py_CLEAR(self->reply_type);
     Py_CLEAR(self->request);
     Py_CLEAR(self->conn);
     self->ob_type->tp_free((PyObject *)self);
@@ -88,7 +88,7 @@ xpybCookie_reply(xpybCookie *self, PyObject *args)
 	goto err1;
 
     /* Call the reply type object to get a new xcb.Reply instance */
-    reply = PyObject_CallFunctionObjArgs((PyObject *)self->reply, shim, NULL);
+    reply = PyObject_CallFunctionObjArgs((PyObject *)self->reply_type, shim, NULL);
     Py_DECREF(shim);
     return reply;
 err1:

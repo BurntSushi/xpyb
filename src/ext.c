@@ -134,7 +134,7 @@ xpybExt_send_request(xpybExt *self, PyObject *args, PyObject *kw)
     /* Set up cookie */
     Py_INCREF(cookie->conn = self->conn);
     Py_INCREF((PyObject *)(cookie->request = request));
-    Py_XINCREF(cookie->reply = reply);
+    Py_XINCREF(cookie->reply_type = reply);
     cookie->cookie.sequence = seq;
 
     Py_INCREF(cookie);
