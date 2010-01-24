@@ -175,7 +175,10 @@ def py_enum(self, name):
 
     for (enam, eval) in self.values:
         _py('    %s = %s', _n(enam), eval if eval != '' else count)
-        count += 1
+        if eval != '':
+            count = int(eval) + 1
+        else:
+            count += 1
 
 def _py_type_setup(self, name, postfix=''):
     '''
