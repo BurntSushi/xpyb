@@ -456,7 +456,7 @@ xpybConn_poll_for_event(xpybConn *self, PyObject *args)
     data = xcb_poll_for_event(self->conn);
 
     if (data == NULL) {
-        if (xpybConn_invalid(self->conn))
+        if (xpybConn_invalid(self))
             return NULL;
         else
             Py_RETURN_NONE;
