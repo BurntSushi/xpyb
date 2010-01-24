@@ -456,8 +456,10 @@ xpybConn_poll_for_event(xpybConn *self, PyObject *args)
     data = xcb_poll_for_event(self->conn);
 
     if (data == NULL) {
-	PyErr_SetString(PyExc_IOError, "I/O error on X server connection.");
-	return NULL;
+        if (xpybConn_invalid(self->conn))
+            return NULL;
+        else
+            Py_RETURN_NONE;
     }
 
     if (data->response_type == 0) {
