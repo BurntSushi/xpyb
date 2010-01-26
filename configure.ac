@@ -27,7 +27,7 @@ AC_PROG_LIBTOOL
 AC_PROG_CC
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.1)
+PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.6)
 PKG_CHECK_MODULES(LIBXCB, xcb >= 1.1)
 
 # Find the xcb-proto protocol descriptions
