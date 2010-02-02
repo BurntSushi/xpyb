@@ -26,7 +26,7 @@ xpybResponse_getattro(PyObject *self, PyObject *obj)
     if (PyObject_AsReadBuffer(self, (const void **)&data, &size) < 0)
 	return NULL;
 
-    if (strcmp(name, "type") == 0)
+    if (strcmp(name, "response_type") == 0)
 	return Py_BuildValue("B", data->response_type);
     if (strcmp(name, "sequence") == 0)
 	return Py_BuildValue("H", data->sequence);
