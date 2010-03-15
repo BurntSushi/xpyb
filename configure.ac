@@ -28,7 +28,7 @@ AC_PROG_CC
 
 # Checks for pkg-config packages
 PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.6)
-PKG_CHECK_MODULES(LIBXCB, xcb >= 1.1)
+PKG_CHECK_MODULES(LIBXCB, xcb > 1.5)
 
 # Find the xcb-proto protocol descriptions
 AC_MSG_CHECKING([for xcb-proto include dir])
