@@ -28,3 +28,6 @@ stamp-h1
 *.pc
 *.tar.bz2
 *.tar.gz
+*.xml
+*~
+py-compile
