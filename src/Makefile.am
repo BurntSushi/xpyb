@@ -11,7 +11,7 @@ pkgpython_LTLIBRARIES = xcb.la
 
 xcb_la_LIBADD = $(LIBXCB_LIBS)
 xcb_la_CPPFLAGS = -I$(PYTHON_INCLUDE)
-xcb_la_CFLAGS = -g $(CWARNFLAGS)
+xcb_la_CFLAGS = -g $(CWARNFLAGS) $(LIBXCB_CFLAGS)
 xcb_la_LDFLAGS = -module
 xcb_la_SOURCES = conn.c constant.c cookie.c error.c event.c except.c \
 		 ext.c extkey.c iter.c list.c module.c protobj.c \
