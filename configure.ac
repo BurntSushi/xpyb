@@ -6,8 +6,14 @@ AC_INIT([xpyb],
         1.2,
         [xcb@lists.freedesktop.org])
 AC_CONFIG_SRCDIR([xpyb.pc.in])
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AC_CONFIG_MACRO_DIR([m4])
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+AC_PROG_CC
 
+AC_CONFIG_HEADERS([src/config.h])
+
+AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_PATH_PYTHON([2.5])
 AC_MSG_CHECKING([for python include dir])
 PYTHON_INCLUDE=`$PYTHON -c "from distutils import sysconfig; \
@@ -19,12 +25,6 @@ fi
 
 AC_MSG_RESULT([$PYTHON_INCLUDE])
 AC_SUBST([PYTHON_INCLUDE])
-
-AC_CONFIG_HEADERS([src/config.h])
-
-AC_DISABLE_STATIC
-AC_PROG_LIBTOOL
-AC_PROG_CC
 
 # Checks for pkg-config packages
 PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.6)
