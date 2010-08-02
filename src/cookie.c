@@ -23,7 +23,9 @@ xpybCookie_new(PyTypeObject *self, PyObject *args, PyObject *kw)
 static void
 xpybCookie_dealloc(xpybCookie *self)
 {
-    xcb_discard_reply(self, self->cookie.sequence);
+    if (self->conn->conn)
+	xcb_discard_reply(self->conn->conn, self->cookie.sequence);
+
     Py_CLEAR(self->reply_type);
     Py_CLEAR(self->request);
     Py_CLEAR(self->conn);
