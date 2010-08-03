@@ -40,6 +40,11 @@ EXTSOURCES += dpms.py
 EXTENSION_XML += dpms.xml
 endif
 
+if BUILD_DRI2
+EXTSOURCES += dri2.py
+EXTENSION_XML += dri2.xml
+endif
+
 if BUILD_GLX
 EXTSOURCES += glx.py
 EXTENSION_XML += glx.xml
@@ -60,7 +65,7 @@ EXTSOURCES += render.py
 EXTENSION_XML += render.xml
 endif
 
-if BUILD_RES
+if BUILD_RESOURCE
 EXTSOURCES += res.py
 EXTENSION_XML += res.xml
 endif
@@ -90,7 +95,7 @@ EXTSOURCES += xevie.py
 EXTENSION_XML += xevie.xml
 endif
 
-if BUILD_XF86DRI
+if BUILD_XFREE86_DRI
 EXTSOURCES += xf86dri.py
 EXTENSION_XML += xf86dri.xml
 endif
