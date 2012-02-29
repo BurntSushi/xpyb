@@ -4,7 +4,6 @@
 typedef struct {
     PyObject_HEAD
     PyObject *buf;
-    void *data;
 } xpybProtobj;
 
 extern PyTypeObject xpybProtobj_type;

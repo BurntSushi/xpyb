@@ -35,7 +35,6 @@ static void
 xpybProtobj_dealloc(xpybProtobj *self)
 {
     Py_CLEAR(self->buf);
-    free(self->data);
     self->ob_type->tp_free((PyObject *)self);
 }
 
