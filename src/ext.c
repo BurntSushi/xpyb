@@ -113,6 +113,10 @@ xpybExt_send_request(xpybExt *self, PyObject *args, PyObject *kw)
 	    return NULL;
 	}
 
+    /* Check the connection */
+    if (xpybConn_invalid(self->conn))
+	return NULL;
+
     /* Set up request structure */
     xcb_req.count = 2;
     xcb_req.ext = (self->key != (xpybExtkey *)Py_None) ? &self->key->key : 0;
