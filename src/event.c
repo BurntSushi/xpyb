@@ -10,7 +10,7 @@
 PyObject *
 xpybEvent_create(xpybConn *conn, xcb_generic_event_t *e)
 {
-    unsigned char opcode = e->response_type;
+    unsigned char opcode = e->response_type & 0x7f;
     PyObject *shim, *event, *type = (PyObject *)&xpybEvent_type;
 
     if (opcode < conn->events_len && conn->events[opcode] != NULL)
