@@ -67,6 +67,8 @@ xpybCookie_reply(xpybCookie *self, PyObject *args)
     xcb_generic_error_t *error;
     xcb_generic_reply_t *data;
     PyObject *shim, *reply;
+    void *buf;
+    Py_ssize_t len;
 
     /* Check arguments and connection. */
     if (self->request->is_void) {
@@ -86,14 +88,21 @@ xpybCookie_reply(xpybCookie *self, PyObject *args)
     }
 
     /* Create a shim protocol object */
-    shim = PyBuffer_FromMemory(data, 32 + data->length * 4);
+    shim = PyBuffer_New(32 + data->length * 4);
     if (shim == NULL)
 	goto err1;
+    if (PyObject_AsWriteBuffer(shim, &buf, &len) < 0)
+        goto err2;
+    memcpy(buf, data, len);
+    free(data);
 
     /* Call the reply type object to get a new xcb.Reply instance */
     reply = PyObject_CallFunctionObjArgs((PyObject *)self->reply_type, shim, NULL);
     Py_DECREF(shim);
     return reply;
+
+err2:
+    Py_DECREF(shim);
 err1:
     free(data);
     return NULL;
