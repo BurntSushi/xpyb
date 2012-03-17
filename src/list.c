@@ -101,6 +101,7 @@ xpybList_init(xpybList *self, PyObject *args, PyObject *kw)
 
 	if (PyList_Append(self->list, obj) < 0)
 	    return -1;
+        Py_DECREF(obj);
     }
 
     self->buf = PyBuffer_FromObject(parent, offset, cur - offset);
