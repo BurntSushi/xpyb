@@ -40,10 +40,10 @@ EXTSOURCES += dpms.py
 EXTENSION_XML += dpms.xml
 endif
 
-if BUILD_DRI2
-EXTSOURCES += dri2.py
-EXTENSION_XML += dri2.xml
-endif
+# if BUILD_DRI2
+# EXTSOURCES += dri2.py
+# EXTENSION_XML += dri2.xml
+# endif
 
 if BUILD_GLX
 EXTSOURCES += glx.py
