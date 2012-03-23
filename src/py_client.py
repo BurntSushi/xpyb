@@ -259,16 +259,12 @@ def _py_get_length_field(expr):
     For fields that follow a variable-length field, use the accessor.
     Otherwise, just reference the structure field directly.
     '''
-    if expr.lenfield_name != None:
-        # This would be nicer if Request had an is_request attribute...
-        try:
-            has_opcode = hasattr(expr.parent.parents, "opcode")
-        except AttributeError:
-            has_opcode = False
-        if has_opcode:
-            return expr.lenfield_name
-        else:
-            return 'self.%s' % expr.lenfield_name
+    if expr.lenfield_name is not None:
+        for grandparent in expr.parent.parents:
+            # This would be nicer if Request had an is_request attribute...
+            if hasattr(grandparent, "opcode"):
+                return expr.lenfield_name
+        return 'self.%s' % expr.lenfield_name
     else:
         return str(expr.nmemb)
 
