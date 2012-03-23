@@ -482,24 +482,24 @@ def _py_request_helper(self, name, void, regular):
 
         (format, size, list) = _py_flush_format()
         if size > 0:
-            _py('        buf.write(pack(\'%s\', %s))', format, list)
+            _py('        buf.write(pack(\'=%s\', %s))', format, list)
 
         if field.type.is_expr:
-            _py('        buf.write(pack(\'%s\', %s))', field.type.py_format_str, _py_get_expr(field.type.expr))
+            _py('        buf.write(pack(\'=%s\', %s))', field.type.py_format_str, _py_get_expr(field.type.expr))
         elif field.type.is_pad:
             _py('        buf.write(pack(\'%sx\'))', field.type.nmemb)
         elif field.type.is_container:
             _py('        for elt in xcb.Iterator(%s, %d, \'%s\', False):', _n(field.field_name), field.type.py_format_len, _n(field.field_name))
-            _py('            buf.write(pack(\'%s\', *elt))', field.type.py_format_str)
+            _py('            buf.write(pack(\'=%s\', *elt))', field.type.py_format_str)
         elif field.type.is_list and field.type.member.is_simple:
             _py('        buf.write(str(buffer(array(\'%s\', %s))))', field.type.member.py_format_str, _n(field.field_name))
         else:
             _py('        for elt in xcb.Iterator(%s, %d, \'%s\', True):', _n(field.field_name), field.type.member.py_format_len, _n(field.field_name))
-            _py('            buf.write(pack(\'%s\', *elt))', field.type.member.py_format_str)
+            _py('            buf.write(pack(\'=%s\', *elt))', field.type.member.py_format_str)
 
     (format, size, list) = _py_flush_format()
     if size > 0:
-        _py('        buf.write(pack(\'%s\', %s))', format, list)
+        _py('        buf.write(pack(\'=%s\', %s))', format, list)
 
     _py('        return self.send_request(xcb.Request(buf.getvalue(), %s, %s, %s),', self.opcode, _b(void), _b(func_flags))
     _py('                                 %s()%s', func_cookie, ')' if void else ',')
