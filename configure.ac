@@ -27,7 +27,7 @@ AC_MSG_RESULT([$PYTHON_INCLUDE])
 AC_SUBST([PYTHON_INCLUDE])
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.6)
+PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.7.1)
 PKG_CHECK_MODULES(LIBXCB, xcb > 1.5)
 
 # Find the xcb-proto protocol descriptions
