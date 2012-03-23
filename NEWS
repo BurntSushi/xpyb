@@ -1,3 +1,9 @@
+Release 1.3.1 (2012-03-23)
+==========================
+- Depends on xcb-proto 1.7.1
+- Fix length field handling, again
+- Pack requests using standard size and no alignment
+
 Release 1.3 (2012-03-22)
 ========================
 - Export API to other Python modules

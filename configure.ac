@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.57)
 AC_INIT([xpyb],
-        1.3,
+        1.3.1,
         [xcb@lists.freedesktop.org])
 AC_CONFIG_SRCDIR([xpyb.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
